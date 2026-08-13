@@ -1080,3 +1080,20 @@ Both fixes have their own commits, and the gate was then re-run from a fresh clo
 **Left open** Nothing in the plan. What remains is what §14 says remains — a successful
 generation through a hosted provider, persisted theme edits, and the bonus features that were
 never in scope.
+
+---
+
+## Follow-up — the second scaffold readme
+
+**Prompt** "Why readme no updated?"
+
+**What it produced** The root `README.md` was updated and committed in block 15, so the
+question pointed at a different file: `apps/web/README.md` was still the create-next-app
+boilerplate — "This is a Next.js project bootstrapped with create-next-app", ending in a
+Vercel deploy link. The block 15 sweep deleted Nest's `apps/api/README.md` and the five unused
+starter SVGs, and missed this one. Deleted.
+
+**Trade-off** None worth the name. Nothing referenced the file, and a workspace readme would
+only repeat what the root readme already says about running the app — two sets of run
+instructions that can disagree is worse than one. The root `README.md` stays the only readme
+in the repository.
