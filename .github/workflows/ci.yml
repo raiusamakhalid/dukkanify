@@ -25,6 +25,11 @@ jobs:
       - name: Install
         run: npm ci
 
+      # Must precede typecheck: both apps resolve @dukkanify/contracts through its dist
+      # output, which does not exist in a fresh clone until it is built.
+      - name: Build contracts
+        run: npm run contracts:build
+
       # architecture.md §3 — the check that separates real layering from decorative
       # folders. domain/ may import no framework at all; application/ may not reach
       # for a concrete implementation. Directories are globbed, so this is a no-op
@@ -76,9 +81,6 @@ jobs:
       - name: Test
         run: npm run test
 
-      # Switches to the root `npm run build` once packages/contracts exists, which
-      # is the workspace the root script builds first.
+      # Builds @dukkanify/contracts first: both apps typecheck against its dist output.
       - name: Build
-        run: |
-          npm run build -w api
-          npm run build -w web
+        run: npm run build
