@@ -570,8 +570,24 @@ Accurate as of submission. Nothing below is implied to work elsewhere in the rep
 
 - **Bonus features not implemented:** SSE streaming, undo/redo, version history writer.
   `StoreVersion` exists in the schema with no producer.
-- **Gemini adapter not written.** The port exists and the factory branches on config;
-  the adapter is one file. This is the point of the port, not an oversight.
+- **Gemini is implemented but sends no response schema.** `GeminiGenerator` sits behind
+  the same `AiGeneratorPort` as Claude and is selected by `AI_PROVIDER=gemini`. It asks for
+  `application/json` and nothing more: the API rejects the generated blueprint schema with
+  `400 INVALID_ARGUMENT` — bisected against the live API, every part passes alone and the
+  `pages` array of pages containing an `anyOf` of five section shapes does not, so the limit
+  is structural — and even where accepted, `responseJsonSchema` does not honour `pattern`,
+  `minLength`/`maxLength`, `const`, `exclusiveMinimum` or `default`, which is most of what
+  our contract is made of. Formats are therefore enforced by `StoreBlueprintSchema` and
+  corrected by the repair turn, which on this provider is the primary enforcement rather
+  than a safety net. The consequence to expect is more repair turns than the Claude path,
+  and therefore roughly double the tokens on a bad first attempt.
+- **Neither hosted provider has been run end to end successfully.** The Claude path has no
+  key in this environment. The Gemini path is wired and was exercised against the live API,
+  but the free-tier daily quota was exhausted while bisecting its schema support, so the
+  last call returned a real `429` — which did confirm the quota handling: per-minute and
+  per-day limits are told apart and answered as 503 with different messages. A successful
+  generation through a hosted provider is still owed; `AI_PROVIDER=mock` is what every
+  other verification in this repo runs on.
 - **Product imagery is deterministic placeholder generation.** No image model wired in.
 - **No HTTP e2e or repository integration tests.** Unit coverage only, as scoped in §13.
 - **Single-region, single-instance deployment.** No cache layer, no read replicas.

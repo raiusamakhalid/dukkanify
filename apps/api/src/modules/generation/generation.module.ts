@@ -8,6 +8,7 @@ import {
 import { BlueprintRepairService } from './application/services/blueprint-repair.service';
 import { GenerateStoreUseCase } from './application/use-cases/generate-store.use-case';
 import { ClaudeGenerator } from './infrastructure/providers/claude.generator';
+import { GeminiGenerator } from './infrastructure/providers/gemini.generator';
 import { MockGenerator } from './infrastructure/providers/mock.generator';
 import { GenerationController } from './presentation/generation.controller';
 
@@ -29,15 +30,10 @@ import { GenerationController } from './presentation/generation.controller';
         switch (config.ai.provider) {
           case 'claude':
             return new ClaudeGenerator(config);
+          case 'gemini':
+            return new GeminiGenerator(config);
           case 'mock':
             return new MockGenerator();
-          default:
-            // `gemini` is a valid value of AI_PROVIDER (§14 lists the adapter as out of
-            // scope) so boot fails here with a sentence rather than at the first prompt
-            // with an injection error.
-            throw new Error(
-              `No generator is implemented for AI_PROVIDER="${config.ai.provider}". Use "mock" or "claude".`,
-            );
         }
       },
     },
