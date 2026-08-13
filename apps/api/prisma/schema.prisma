@@ -4,6 +4,10 @@
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
+  // NestJS compiles to CommonJS. The generator defaults to ESM, which emits
+  // `import.meta.url` — syntax tsc cannot downlevel, leaving a file that is neither valid
+  // CommonJS nor valid ESM and that dies at require time with "exports is not defined".
+  moduleFormat = "cjs"
 }
 
 // The connection URL lives in prisma.config.ts, not here: Prisma 7 reads the datasource

@@ -1,4 +1,13 @@
 {
   "extends": "./tsconfig.json",
-  "exclude": ["node_modules", "test", "dist", "**/*spec.ts"]
+  "compilerOptions": {
+    // Without this, prisma.config.ts at the package root raises the inferred rootDir a
+    // level and the entry point compiles to dist/src/main.js, which `start:prod` does not
+    // look for. The Prisma config is a CLI-time file and has no business in dist.
+    "rootDir": "src",
+    // Keep the incremental cache inside dist so nest's deleteOutDir wipes it too.
+    // A leftover *.tsbuildinfo outside dist makes tsc skip emit after dist is removed.
+    "tsBuildInfoFile": "./dist/tsconfig.build.tsbuildinfo"
+  },
+  "exclude": ["node_modules", "test", "dist", "**/*spec.ts", "prisma.config.ts"]
 }

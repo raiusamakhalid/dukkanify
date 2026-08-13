@@ -219,8 +219,9 @@ erDiagram
 
 ```prisma
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
 }
 
 datasource db {
@@ -346,6 +347,11 @@ Notes worth defending out loud:
     engine, so `@prisma/adapter-pg` is required and the connection string is a constructor
     argument to `PrismaService` rather than something the client discovers for itself.
     `datasourceUrl` no longer exists.
+  - **`moduleFormat = "cjs"` is load-bearing.** NestJS compiles to CommonJS, while the
+    generator defaults to ESM and emits `import.meta.url` — syntax `tsc` cannot downlevel.
+    The result compiles without complaint and then dies at require time with "exports is not
+    defined in ES module scope". One line in the generator block, or a runtime failure that
+    looks like nothing in the schema.
 - **`Decimal(10,2)`, never `Float`.** Binary floating point cannot represent 19.99.
 - **`locale` and `direction` exist from migration one.** RTL is a data property, not a
   CSS afterthought. Costs two columns; proves the Arabic requirement was designed for.

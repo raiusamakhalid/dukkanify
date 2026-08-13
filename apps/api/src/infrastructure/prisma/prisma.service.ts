@@ -44,4 +44,21 @@ export class PrismaService
     await this.$disconnect();
     this.logger.log('Disconnected from PostgreSQL');
   }
+
+  /**
+   * Whether the database answers, for the health endpoint. Returns a boolean rather than
+   * throwing, because "the database is down" is the answer being asked for — but the reason
+   * still reaches the log, since a silent false is impossible to diagnose.
+   */
+  async checkConnection(): Promise<boolean> {
+    try {
+      await this.$queryRaw`SELECT 1`;
+      return true;
+    } catch (error) {
+      this.logger.warn(
+        `Database health check failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return false;
+    }
+  }
 }
