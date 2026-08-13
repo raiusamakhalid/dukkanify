@@ -7,8 +7,8 @@ services:
       POSTGRES_USER: dukkanify
       POSTGRES_PASSWORD: dukkanify
       POSTGRES_DB: dukkanify
-    # 5433 on the host: a PostgreSQL install already owns 5432 on this machine, and a
-    # silent collision means migrations land in the wrong database.
+    # Host 5432 is already taken by the system PostgreSQL on this machine.
+    # Use 5433 so the container can publish, and register that port in pgAdmin.
     ports: ["5433:5432"]
     volumes: ["dukkanify-pgdata:/var/lib/postgresql/data"]
     healthcheck:

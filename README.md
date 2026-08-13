@@ -24,46 +24,66 @@ rendered instantly, and editable in place.
 
 ---
 
-## Running it
+## Quick start (one command)
 
-**Prerequisites:** Node 20.11+ (built on 22.19), Docker, and a Google OAuth client if you
-want to sign in.
+**Prerequisites:** Node.js **20.11+**, Docker, and a Google OAuth client (for sign-in).
 
 ```bash
-git clone <this repository> && cd dukkanify
-npm install                      # also builds @dukkanify/contracts and runs `prisma generate`
-
-docker compose up -d             # PostgreSQL 16 on port 5433
-cp apps/api/.env.example apps/api/.env
-cp apps/web/.env.local.example apps/web/.env.local
-#   fill in JWT_SECRET, AUTH_SECRET, and the Google client id/secret
-
-npm run db:migrate -w api        # apply the single migration
-npm run dev                      # api on :4000, web on :3000
+git clone <this-repo> && cd dukkanify
+npm install
 ```
 
-Open <http://localhost:3000>. Sign in with Google, then **Create Store**.
+Copy env files once (skipped automatically on later runs if they already exist):
 
-`AI_PROVIDER=mock` is the default and needs no API key — it is a first-class adapter behind
-the same port as the hosted providers, not a stub, and it is what every verification in this
-repository runs on. Set `AI_PROVIDER=claude` with `ANTHROPIC_API_KEY`, or `AI_PROVIDER=gemini`
-with `GEMINI_API_KEY`, to use a real model.
+```bash
+cp apps/api/.env.example apps/api/.env
+cp apps/web/.env.local.example apps/web/.env.local
+```
+
+Fill in at least:
+
+- `apps/api/.env` → `JWT_SECRET`, `GOOGLE_CLIENT_ID` (same Google client id)
+- `apps/web/.env.local` → `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`
+
+Then start **everything** with a single command:
+
+```bash
+npm run dev
+```
+
+That one command:
+
+1. Starts PostgreSQL via Docker (`localhost:5433`)
+2. Waits until the database is healthy
+3. Applies Prisma migrations
+4. Runs the API on **:4000** and the web app on **:3000** together
+
+Open <http://localhost:3000> → **Continue with Google** → **Create Store**.
+
+| Alias              | Same as                             |
+| ------------------ | ----------------------------------- |
+| `npm start`        | `npm run dev`                       |
+| `npm run dev:apps` | API + web only (DB already running) |
+
+`AI_PROVIDER=mock` is the default — no paid API key required. For a real model set
+`AI_PROVIDER=gemini` + `GEMINI_API_KEY`, or `AI_PROVIDER=claude` + `ANTHROPIC_API_KEY`, then
+restart `npm run dev`.
 
 ### Google sign-in
 
-Create an OAuth client (Web application) in the Google Cloud console and register
-`http://localhost:3000/api/auth/callback/google` as an authorised redirect URI. Put the id
-and secret in `apps/web/.env.local` as `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET`, and the same
-client id in `apps/api/.env` as `GOOGLE_CLIENT_ID` — the API verifies the Google token
-server-side against that audience, which is the only check that means anything.
+Create an OAuth client (Web application) in the [Google Cloud Console](https://console.cloud.google.com/)
+and add this authorised redirect URI:
 
-### Verifying a checkout
+`http://localhost:3000/api/auth/callback/google`
+
+Put the client id/secret in `apps/web/.env.local` (`AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET`) and
+the **same** client id in `apps/api/.env` as `GOOGLE_CLIENT_ID`.
+
+### Verify the checkout gates
 
 ```bash
 npm run typecheck && npm run lint && npm run test && npm run build
 ```
-
-182 tests, and none of them need a database, a network or a running server.
 
 ---
 

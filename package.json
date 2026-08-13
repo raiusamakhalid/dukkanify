@@ -11,12 +11,17 @@
   "scripts": {
     "contracts:build": "npm run build -w @dukkanify/contracts",
     "predev": "npm run contracts:build",
-    "dev": "concurrently -n api,web -c cyan,magenta \"npm run dev -w api\" \"npm run dev -w web\"",
+    "dev": "node scripts/dev.mjs",
+    "dev:apps": "concurrently -n api,web -c cyan,magenta \"npm run dev -w api\" \"npm run dev -w web\"",
+    "start": "npm run dev",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
     "build": "npm run contracts:build && npm run build -w api && npm run build -w web",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "db:migrate": "npm run db:migrate -w api",
+    "db:deploy": "npm run db:deploy -w api",
     "db:seed": "npm run db:seed -w api",
     "prepare": "husky && npm run contracts:build"
   },
