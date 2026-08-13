@@ -3,7 +3,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { Storefront } from "@/features/storefront/storefront";
+import { EditableStorefront } from "@/features/builder/editable-storefront";
+import { EditorPanel } from "@/features/builder/editor-panel";
 import { apiAsUser } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
@@ -62,10 +63,16 @@ export default async function BuilderPage({
         </Link>
       </div>
 
-      {/* The preview is framed rather than full-bleed: a shop shown inside the builder should
-          read as a thing being worked on, not as the page you are currently on. */}
-      <div className="border-border/60 mt-8 overflow-hidden rounded-xl border shadow-sm">
-        <Storefront store={store} />
+      {/* Canvas and editor side by side on a wide screen, stacked on a narrow one — with the
+          canvas first either way, because the shop is the thing being worked on and the panel
+          is the tool. The preview is framed rather than full-bleed so it reads as a document
+          being edited rather than as the page you are currently on. */}
+      <div className="mt-8 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="group/canvas border-border/60 overflow-hidden rounded-xl border shadow-sm">
+          <EditableStorefront store={store} />
+        </div>
+
+        <EditorPanel store={store} />
       </div>
     </div>
   );
