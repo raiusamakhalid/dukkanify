@@ -7,6 +7,8 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
 import { AppConfig, AppConfigModule } from './config/configuration';
 import { HealthController } from './health/health.controller';
 import { PrismaModule } from './infrastructure/prisma/prisma.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { JwtAuthGuard } from './modules/auth/infrastructure/jwt-auth.guard';
 
 @Module({
   imports: [
@@ -23,6 +25,7 @@ import { PrismaModule } from './infrastructure/prisma/prisma.module';
       }),
     }),
     PrismaModule,
+    AuthModule,
   ],
   controllers: [HealthController],
   providers: [
@@ -31,7 +34,12 @@ import { PrismaModule } from './infrastructure/prisma/prisma.module';
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
     { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },
     { provide: APP_INTERCEPTOR, useClass: TransformInterceptor },
+    // Order is registration order. Rate limiting runs first so a flood of unauthenticated
+    // requests is cut before any of them reaches token verification.
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+    // Authentication is global and waived per route with `@Public()`, so a controller added
+    // tomorrow is private until someone decides otherwise.
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
   ],
 })
 export class AppModule {}

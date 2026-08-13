@@ -31,6 +31,19 @@ export const DEFAULT_AI_MODEL = {
   gemini: 'gemini-3.5-flash',
 } as const satisfies Record<AiProvider, string>;
 
+/**
+ * Token lifetimes are written the way people say them — `30m`, `12h`, `7d` — and stored as
+ * seconds, which is the only unit `jsonwebtoken` accepts without ambiguity.
+ */
+const DURATION_PATTERN = /^(\d+)([smhdw])$/;
+const SECONDS_PER_UNIT: Readonly<Record<string, number | undefined>> = {
+  s: 1,
+  m: 60,
+  h: 3_600,
+  d: 86_400,
+  w: 604_800,
+};
+
 const EnvSchema = z
   .object({
     NODE_ENV: z.enum(NODE_ENVS).default('development'),
@@ -59,7 +72,34 @@ const EnvSchema = z
         32,
         'must be at least 32 characters — generate one with `openssl rand -hex 32`',
       ),
-    JWT_EXPIRES_IN: z.string().min(1).default('7d'),
+    /** Parsed to seconds here so an unreadable value fails boot, not the first sign-in. */
+    JWT_EXPIRES_IN: z
+      .string()
+      .default('7d')
+      .transform((value, ctx) => {
+        const match = DURATION_PATTERN.exec(value.trim());
+        const amount = match?.[1];
+        const unitSeconds =
+          match?.[2] === undefined ? undefined : SECONDS_PER_UNIT[match[2]];
+
+        if (amount === undefined || unitSeconds === undefined) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'must be a duration such as "30m", "12h" or "7d"',
+          });
+          return z.NEVER;
+        }
+
+        const seconds = Number(amount) * unitSeconds;
+        if (seconds <= 0) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'must be longer than zero',
+          });
+          return z.NEVER;
+        }
+        return seconds;
+      }),
 
     GOOGLE_CLIENT_ID: z.string().min(1),
 

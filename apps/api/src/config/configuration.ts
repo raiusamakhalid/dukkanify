@@ -25,7 +25,7 @@ export class AppConfig {
     readonly model: string;
     readonly maxTokens: number;
   };
-  readonly jwt: { readonly secret: string; readonly expiresIn: string };
+  readonly jwt: { readonly secret: string; readonly expiresInSeconds: number };
   readonly google: { readonly clientId: string };
   readonly throttle: { readonly ttl: number; readonly limit: number };
 
@@ -45,7 +45,10 @@ export class AppConfig {
       model: env.AI_MODEL ?? DEFAULT_AI_MODEL[env.AI_PROVIDER],
       maxTokens: env.AI_MAX_TOKENS,
     };
-    this.jwt = { secret: env.JWT_SECRET, expiresIn: env.JWT_EXPIRES_IN };
+    this.jwt = {
+      secret: env.JWT_SECRET,
+      expiresInSeconds: env.JWT_EXPIRES_IN,
+    };
     this.google = { clientId: env.GOOGLE_CLIENT_ID };
     this.throttle = { ttl: env.THROTTLE_TTL, limit: env.THROTTLE_LIMIT };
   }
