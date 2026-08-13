@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { StoreBlueprintSchema } from "./blueprint.schema";
 import {
   DirectionSchema,
   PageTypeSchema,
@@ -104,8 +105,33 @@ export const StoreDtoSchema = StoreSummaryDtoSchema.extend({
 });
 export type StoreDto = z.infer<typeof StoreDtoSchema>;
 
+export const PromptSchema = z
+  .string()
+  .trim()
+  .min(MIN_PROMPT_LENGTH)
+  .max(MAX_PROMPT_LENGTH);
+
 export const GenerateRequestSchema = z.object({
-  prompt: z.string().trim().min(MIN_PROMPT_LENGTH).max(MAX_PROMPT_LENGTH),
+  prompt: PromptSchema,
   locale: LocaleSchema.default("en"),
 });
 export type GenerateRequest = z.infer<typeof GenerateRequestSchema>;
+
+/**
+ * `POST /store` — a whole storefront the client already holds, in the same id-free form the
+ * generator produces. Ids, slug, positions and reading direction are all server-assigned,
+ * which is why none of them appear here: a client cannot claim a URL or another user's row.
+ */
+export const SaveStoreRequestSchema = z.object({
+  /** Present to replace an existing store the caller owns; absent to create a new one. */
+  storeId: IdSchema.optional(),
+  prompt: PromptSchema,
+  blueprint: StoreBlueprintSchema,
+});
+export type SaveStoreRequest = z.infer<typeof SaveStoreRequestSchema>;
+
+/** `PATCH /store/:id/sections/:sectionId` — the inline editor's write. */
+export const UpdateSectionRequestSchema = z.object({
+  content: SectionContentSchema,
+});
+export type UpdateSectionRequest = z.infer<typeof UpdateSectionRequestSchema>;

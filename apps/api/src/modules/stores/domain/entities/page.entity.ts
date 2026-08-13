@@ -51,9 +51,24 @@ export class Page {
     );
   }
 
-  findSection(sectionId: string): Section | null {
-    return this.sections.find((section) => section.id === sectionId) ?? null;
+  /**
+   * The section and where it sits, because "which section" and "which position" are one
+   * lookup: the editor patches a section and the client re-renders it in place, and two
+   * separate scans for those two answers is how they end up disagreeing.
+   */
+  findSection(sectionId: string): SectionLocation | null {
+    const position = this.sections.findIndex(
+      (section) => section.id === sectionId,
+    );
+    const section = this.sections[position];
+    return section === undefined ? null : { section, position };
   }
+}
+
+export interface SectionLocation {
+  readonly section: Section;
+  /** Its index in the page, which is what the DTO calls `position`. */
+  readonly position: number;
 }
 
 function firstDuplicateId(sections: readonly Section[]): string | null {

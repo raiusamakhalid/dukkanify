@@ -22,12 +22,26 @@ export class Slug {
   /**
    * Derives a slug from human text: "Oud & Attar" becomes "oud-attar".
    *
-   * Latin diacritics are folded rather than dropped, so "Café" stays "cafe". Scripts with no
-   * ASCII form — Arabic above all, which this product is built for — normalise to nothing,
-   * and that throws rather than returning an empty slug. Choosing a fallback is a product
-   * decision, so it belongs to the caller that knows what the store is called.
+   * Latin diacritics are folded rather than dropped, so "Café" stays "cafe".
    */
   static fromText(text: string): Slug {
+    const slug = Slug.tryFromText(text);
+    ensure(
+      slug !== null,
+      `"${text}" contains no characters a URL slug can be made from.`,
+    );
+    return slug;
+  }
+
+  /**
+   * The same derivation, answering `null` instead of throwing.
+   *
+   * Scripts with no ASCII form — Arabic above all, which this product is built for —
+   * normalise to nothing. What a store called "عطور فاخرة" should live at is a product
+   * decision belonging to the caller, and a caller that has a fallback ready should not have
+   * to catch an exception to use it.
+   */
+  static tryFromText(text: string): Slug | null {
     const normalised = text
       .normalize('NFKD')
       .replace(/\p{Diacritic}/gu, '')
@@ -37,11 +51,18 @@ export class Slug {
       .slice(0, MAX_LENGTH)
       .replace(/-+$/, '');
 
-    ensure(
-      normalised.length > 0,
-      `"${text}" contains no characters a URL slug can be made from.`,
-    );
-    return Slug.create(normalised);
+    return normalised.length === 0 ? null : Slug.create(normalised);
+  }
+
+  /**
+   * A variant of this slug that fits the column: "oud-attar" + "2" becomes "oud-attar-2".
+   * The base is trimmed from the end when the suffix would push it past the limit, so a
+   * long store name still yields a valid slug rather than a rejected one.
+   */
+  withSuffix(suffix: string): Slug {
+    const room = MAX_LENGTH - suffix.length - 1;
+    const base = this.value.slice(0, room).replace(/-+$/, '');
+    return Slug.create(`${base}-${suffix}`);
   }
 
   equals(other: Slug): boolean {

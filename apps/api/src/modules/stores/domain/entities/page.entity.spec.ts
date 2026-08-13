@@ -78,8 +78,9 @@ describe('Page.findSection', () => {
     }),
   );
 
-  it('finds a section it contains', () => {
-    expect(page.findSection('sec-2')?.id).toBe('sec-2');
+  it('finds a section it contains, and where it sits', () => {
+    expect(page.findSection('sec-2')).toMatchObject({ position: 1 });
+    expect(page.findSection('sec-2')?.section.id).toBe('sec-2');
   });
 
   it('returns null for one it does not', () => {

@@ -43,6 +43,26 @@ describe('Slug.fromText', () => {
     // decision, so it belongs to the caller, not to this constructor.
     expect(() => Slug.fromText('عطور فاخرة')).toThrow(ValidationError);
   });
+
+  it('answers null for the same text when the caller has a fallback ready', () => {
+    expect(Slug.tryFromText('عطور فاخرة')).toBe(null);
+    expect(Slug.tryFromText('Oud & Attar')?.value).toBe('oud-attar');
+  });
+});
+
+describe('Slug.withSuffix', () => {
+  it('appends a disambiguator', () => {
+    expect(Slug.create('oud-attar').withSuffix('2').value).toBe('oud-attar-2');
+  });
+
+  it('trims the base so a long slug still fits the column', () => {
+    const long = Slug.create('a'.repeat(64));
+
+    const suffixed = long.withSuffix('2');
+
+    expect(suffixed.value.length).toBe(64);
+    expect(suffixed.value.endsWith('-2')).toBe(true);
+  });
 });
 
 describe('Slug', () => {

@@ -13,9 +13,8 @@ import {
 } from '@dukkanify/contracts';
 import { ensure, parseOrThrow } from '../invariants';
 import type { Slug } from '../value-objects/slug.vo';
-import type { Page } from './page.entity';
+import type { Page, SectionLocation } from './page.entity';
 import type { Product } from './product.entity';
-import type { Section } from './section.entity';
 
 const StoreNameSchema = text(60);
 const TaglineSchema = text(140);
@@ -152,11 +151,11 @@ export class Store {
   }
 
   /** The section with this id anywhere in the store, or null if it belongs to another. */
-  findSection(sectionId: string): Section | null {
+  findSection(sectionId: string): SectionLocation | null {
     for (const page of this.pages) {
-      const section = page.findSection(sectionId);
-      if (section !== null) {
-        return section;
+      const located = page.findSection(sectionId);
+      if (located !== null) {
+        return located;
       }
     }
     return null;

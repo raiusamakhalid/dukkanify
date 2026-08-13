@@ -253,7 +253,7 @@ describe('Store behaviour', () => {
   it('finds a section on any of its pages', () => {
     const store = Store.create(storeWith());
 
-    expect(store.findSection('sec-contact')?.type).toBe('CONTACT');
+    expect(store.findSection('sec-contact')?.section.type).toBe('CONTACT');
   });
 
   it('does not find a section belonging to another store', () => {
