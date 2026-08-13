@@ -7,7 +7,9 @@ services:
       POSTGRES_USER: dukkanify
       POSTGRES_PASSWORD: dukkanify
       POSTGRES_DB: dukkanify
-    ports: ["5432:5432"]
+    # 5433 on the host: a PostgreSQL install already owns 5432 on this machine, and a
+    # silent collision means migrations land in the wrong database.
+    ports: ["5433:5432"]
     volumes: ["dukkanify-pgdata:/var/lib/postgresql/data"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U dukkanify"]

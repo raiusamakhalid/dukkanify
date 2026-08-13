@@ -6,7 +6,10 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['eslint.config.mjs'],
+    // src/generated holds the Prisma 7 client, which is emitted as TypeScript source into
+    // the source tree. It is a build artefact: linting it reports style violations nobody
+    // can fix, and `lint --fix` would rewrite a file the next `prisma generate` replaces.
+    ignores: ['eslint.config.mjs', 'src/generated/**'],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,

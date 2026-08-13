@@ -1,13 +1,135 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// Data model for the Dukkanify AI Store Builder.
+// docs/architecture.md §6 is the specification for this file; the two move together.
 
 generator client {
   provider = "prisma-client"
-  output   = "../generated/prisma"
+  output   = "../src/generated/prisma"
 }
 
+// The connection URL lives in prisma.config.ts, not here: Prisma 7 reads the datasource
+// URL from the config file so that a schema file carries no environment coupling.
 datasource db {
   provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  avatarUrl String?
+  googleId  String?  @unique
+  stores    Store[]
+  createdAt DateTime @default(now())
+}
+
+model Store {
+  id            String         @id @default(cuid())
+  ownerId       String
+  owner         User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name          String
+  slug          String         @unique
+  tagline       String?
+  prompt        String // the original natural-language request
+  promptVersion String // PROMPT_VERSION used to generate it
+  status        StoreStatus    @default(DRAFT)
+  locale        String         @default("en")
+  direction     Direction      @default(LTR)
+  theme         Json // ThemeTokens, Zod-validated at the app layer
+  pages         Page[]
+  categories    Category[]
+  products      Product[]
+  versions      StoreVersion[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([ownerId, createdAt]) // dashboard: my stores, newest first
+}
+
+model Page {
+  id       String    @id @default(cuid())
+  storeId  String
+  store    Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  type     PageType
+  title    String
+  slug     String
+  position Int
+  sections Section[]
+
+  @@unique([storeId, slug]) // one /about per store
+}
+
+model Section {
+  id       String      @id @default(cuid())
+  pageId   String
+  page     Page        @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  type     SectionType
+  position Int
+  content  Json // discriminated union, Zod-validated
+
+  @@index([pageId, position]) // ordered render of a page
+}
+
+model Category {
+  id       String    @id @default(cuid())
+  storeId  String
+  store    Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name     String
+  slug     String
+  position Int
+  products Product[]
+
+  @@unique([storeId, slug])
+}
+
+model Product {
+  id          String    @id @default(cuid())
+  storeId     String
+  store       Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  name        String
+  description String
+  price       Decimal   @db.Decimal(10, 2)
+  currency    String    @default("AED")
+  sku         String
+  imageUrl    String?
+
+  @@unique([storeId, sku]) // SKU unique per tenant, not globally
+  @@index([storeId, categoryId]) // category-filtered product grid
+}
+
+model StoreVersion {
+  id        String   @id @default(cuid())
+  storeId   String
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  label     String
+  snapshot  Json
+  createdAt DateTime @default(now())
+
+  @@index([storeId, createdAt])
+}
+
+// Mirrored in packages/contracts/src/enums.ts. CLAUDE.md requires both to change together.
+enum StoreStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum Direction {
+  LTR
+  RTL
+}
+
+enum PageType {
+  HOME
+  ABOUT
+  CONTACT
+}
+
+enum SectionType {
+  HERO
+  CATEGORY_GRID
+  PRODUCT_GRID
+  RICH_TEXT
+  CONTACT
 }

@@ -6,7 +6,7 @@
 > fix it, don't let them drift.
 
 **Build constraint:** one-day sprint (~12 hours). Every decision below optimises for
-*the layer that is expensive to change later* — the domain model, the provider
+_the layer that is expensive to change later_ — the domain model, the provider
 boundary, and the shared contract. Feature breadth is deliberately sacrificed;
 see [Known limitations](#14-known-limitations).
 
@@ -80,7 +80,7 @@ grep -rn "PrismaService\|@prisma/client\|@anthropic-ai/sdk" \
 ```
 
 **Zero hits or the layering is decorative.** This is the single check that separates a
-folder structure that *looks* like clean architecture from one that is.
+folder structure that _looks_ like clean architecture from one that is.
 
 ---
 
@@ -218,8 +218,14 @@ erDiagram
 ```
 
 ```prisma
-generator client { provider = "prisma-client-js" }
-datasource db    { provider = "postgresql", url = env("DATABASE_URL") }
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
 
 model User {
   id        String   @id @default(cuid())
@@ -326,6 +332,20 @@ enum SectionType { HERO CATEGORY_GRID PRODUCT_GRID RICH_TEXT CONTACT }
 
 Notes worth defending out loud:
 
+- **Prisma 7, not the `prisma-client-js` generator.** Three consequences follow from the
+  generator above, and all three are visible in the code:
+  - **The datasource URL lives in `prisma.config.ts`, not in this schema.** Prisma 7 reads
+    the connection string from the config file, so the schema carries no environment
+    coupling and no `env()` call.
+  - **The client is imported from the generated path, not from `@prisma/client`** —
+    `import { PrismaClient } from '../../generated/prisma/client'`. The generator emits
+    TypeScript into `apps/api/src/generated/prisma`, which is gitignored and rebuilt by the
+    `postinstall` script; it is a build artefact that happens to live in the source tree,
+    so ESLint ignores it while `tsc` still type-checks it.
+  - **PostgreSQL is reached through a driver adapter.** Prisma 7 ships no bundled query
+    engine, so `@prisma/adapter-pg` is required and the connection string is a constructor
+    argument to `PrismaService` rather than something the client discovers for itself.
+    `datasourceUrl` no longer exists.
 - **`Decimal(10,2)`, never `Float`.** Binary floating point cannot represent 19.99.
 - **`locale` and `direction` exist from migration one.** RTL is a data property, not a
   CSS afterthought. Costs two columns; proves the Arabic requirement was designed for.
@@ -428,7 +448,7 @@ One identity provider, one application token, both apps agreeing on it. The Goog
 token is verified **server-side** against the client ID — a frontend check proves
 nothing, since anything the browser asserts is attacker-controlled.
 
-Ownership is enforced **inside the use case**, not the controller. A guard proves *who*
+Ownership is enforced **inside the use case**, not the controller. A guard proves _who_
 you are; only the use case knows whether this user may touch this store. Putting it in
 the controller means every new route has to remember — putting it in the use case means
 it cannot be bypassed.
@@ -437,16 +457,16 @@ it cannot be bypassed.
 
 ## 9. API surface
 
-| Method | Path | Auth | Purpose |
-|---|---|---|---|
-| `POST` | `/api/v1/auth/google` | public | Exchange Google `id_token` for an application JWT |
-| `POST` | `/api/v1/generate` | required, 5/min/user | Generate and persist a store from a prompt |
-| `POST` | `/api/v1/store` | required | Persist or update a store the client holds |
-| `GET` | `/api/v1/store` | required | List the current user's stores |
-| `GET` | `/api/v1/store/:id` | required + ownership | Full store with pages, sections, products |
-| `PATCH` | `/api/v1/store/:id/sections/:sectionId` | required + ownership | Inline editor update |
-| `GET` | `/api/v1/storefront/:slug` | public | Published storefront render data |
-| `GET` | `/api/v1/health` | public | Liveness + database connectivity |
+| Method  | Path                                    | Auth                 | Purpose                                           |
+| ------- | --------------------------------------- | -------------------- | ------------------------------------------------- |
+| `POST`  | `/api/v1/auth/google`                   | public               | Exchange Google `id_token` for an application JWT |
+| `POST`  | `/api/v1/generate`                      | required, 5/min/user | Generate and persist a store from a prompt        |
+| `POST`  | `/api/v1/store`                         | required             | Persist or update a store the client holds        |
+| `GET`   | `/api/v1/store`                         | required             | List the current user's stores                    |
+| `GET`   | `/api/v1/store/:id`                     | required + ownership | Full store with pages, sections, products         |
+| `PATCH` | `/api/v1/store/:id/sections/:sectionId` | required + ownership | Inline editor update                              |
+| `GET`   | `/api/v1/storefront/:slug`              | public               | Published storefront render data                  |
+| `GET`   | `/api/v1/health`                        | public               | Liveness + database connectivity                  |
 
 URI versioning at `/api/v1`. Every response wrapped by `TransformInterceptor` as
 `{ data, meta }`. Swagger at `/api/docs` outside production.
@@ -458,15 +478,15 @@ URI versioning at `/api/v1`. Every response wrapped by `TransformInterceptor` as
 Application code throws `DomainError` subclasses; it never throws `HttpException`.
 `AllExceptionsFilter` performs the single mapping to HTTP:
 
-| Thrown | Status | When |
-|---|---|---|
-| `ValidationError` | 400 | Input failed a domain invariant |
-| `UnauthorizedError` | 401 | Missing or invalid token |
-| `ForbiddenError` | 403 | Authenticated but not the owner |
-| `NotFoundError` | 404 | Store or section does not exist for this owner |
-| `BlueprintGenerationFailedError` | 422 | Model output failed the contract twice |
-| `AiProviderUnavailableError` | 503 | Upstream timeout or network failure |
-| anything else | 500 | Logged with requestId; no stack trace in production |
+| Thrown                           | Status | When                                                |
+| -------------------------------- | ------ | --------------------------------------------------- |
+| `ValidationError`                | 400    | Input failed a domain invariant                     |
+| `UnauthorizedError`              | 401    | Missing or invalid token                            |
+| `ForbiddenError`                 | 403    | Authenticated but not the owner                     |
+| `NotFoundError`                  | 404    | Store or section does not exist for this owner      |
+| `BlueprintGenerationFailedError` | 422    | Model output failed the contract twice              |
+| `AiProviderUnavailableError`     | 503    | Upstream timeout or network failure                 |
+| anything else                    | 500    | Logged with requestId; no stack trace in production |
 
 Keeping HTTP out of the application layer is what allows the same use cases to be
 driven later by a queue worker or a CLI without rewriting them.
@@ -502,19 +522,19 @@ Validated with Zod at boot. `process.env` is read in exactly one file; everythin
 injects a typed `AppConfig`. A missing variable fails startup with a readable list —
 not a `undefined` three layers deep at request time.
 
-| Variable | App | Purpose |
-|---|---|---|
-| `DATABASE_URL` | api | PostgreSQL connection string |
-| `PORT`, `NODE_ENV`, `CORS_ORIGIN` | api | Server basics |
-| `AI_PROVIDER` | api | `mock` \| `claude` — selects the adapter bound to `AI_GENERATOR` |
-| `ANTHROPIC_API_KEY` | api | Never exposed to the browser |
-| `AI_MODEL`, `AI_MAX_TOKENS` | api | Default `claude-sonnet-5` |
-| `JWT_SECRET`, `JWT_EXPIRES_IN` | api | Application token signing |
-| `GOOGLE_CLIENT_ID` | api | Audience for server-side `id_token` verification |
-| `THROTTLE_TTL`, `THROTTLE_LIMIT` | api | Rate limiting |
-| `NEXT_PUBLIC_API_URL` | web | API base URL — the only public variable |
-| `AUTH_SECRET` | web | Auth.js session encryption |
-| `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` | web | Google OAuth client |
+| Variable                               | App | Purpose                                                          |
+| -------------------------------------- | --- | ---------------------------------------------------------------- |
+| `DATABASE_URL`                         | api | PostgreSQL connection string                                     |
+| `PORT`, `NODE_ENV`, `CORS_ORIGIN`      | api | Server basics                                                    |
+| `AI_PROVIDER`                          | api | `mock` \| `claude` — selects the adapter bound to `AI_GENERATOR` |
+| `ANTHROPIC_API_KEY`                    | api | Never exposed to the browser                                     |
+| `AI_MODEL`, `AI_MAX_TOKENS`            | api | Default `claude-sonnet-5`                                        |
+| `JWT_SECRET`, `JWT_EXPIRES_IN`         | api | Application token signing                                        |
+| `GOOGLE_CLIENT_ID`                     | api | Audience for server-side `id_token` verification                 |
+| `THROTTLE_TTL`, `THROTTLE_LIMIT`       | api | Rate limiting                                                    |
+| `NEXT_PUBLIC_API_URL`                  | web | API base URL — the only public variable                          |
+| `AUTH_SECRET`                          | web | Auth.js session encryption                                       |
+| `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` | web | Google OAuth client                                              |
 
 ---
 
@@ -522,12 +542,12 @@ not a `undefined` three layers deep at request time.
 
 Deliberately narrow, chosen for signal per minute on a one-day build:
 
-| Layer | Tested | How |
-|---|---|---|
-| Contracts | Blueprint schema accepts a valid fixture, rejects wrong product count, bad hex, orphan category | vitest, pure |
-| Domain | Entity invariants (slug shape, page count, positive price) | vitest, no framework |
-| Application | `GenerateStoreUseCase` against `MockGenerator` + in-memory repository fake | vitest, no network, no database |
-| Infrastructure | Claude adapter with the SDK mocked: happy path, malformed JSON, schema violation, network error | vitest |
+| Layer          | Tested                                                                                          | How                             |
+| -------------- | ----------------------------------------------------------------------------------------------- | ------------------------------- |
+| Contracts      | Blueprint schema accepts a valid fixture, rejects wrong product count, bad hex, orphan category | vitest, pure                    |
+| Domain         | Entity invariants (slug shape, page count, positive price)                                      | vitest, no framework            |
+| Application    | `GenerateStoreUseCase` against `MockGenerator` + in-memory repository fake                      | vitest, no network, no database |
+| Infrastructure | Claude adapter with the SDK mocked: happy path, malformed JSON, schema violation, network error | vitest                          |
 
 Not covered: HTTP e2e, repository integration against real Postgres, frontend
 component tests. Listed in Known limitations — those are the first things a second day
@@ -565,7 +585,7 @@ Accurate as of submission. Nothing below is implied to work elsewhere in the rep
    rate-limited upstream. Move `POST /generate` behind a BullMQ queue with per-user
    concurrency caps and idempotency keys, return `202` with a job id, and report progress
    over SSE. Workers then scale independently of the API. Because the use case depends
-   only on ports, the queue worker calls the *same* class — no rewrite.
+   only on ports, the queue worker calls the _same_ class — no rewrite.
 3. **The data shape holds.** 100k stores × ~15 sections ≈ 1.5M section rows: comfortable
    for Postgres with `@@index([pageId, position])`. Beyond that, partition `Section` and
    `Product` by `storeId` hash. JSONB stays queryable via GIN if content search is needed.
@@ -579,12 +599,14 @@ Accurate as of submission. Nothing below is implied to work elsewhere in the rep
 ## 16. Two-week refactoring roadmap
 
 **Week 1 — correctness and confidence**
+
 - Publish `@dukkanify/contracts` as a versioned package with contract tests both apps run in CI
 - Replace thrown errors in application code with `Result<T, DomainError>`; reserve exceptions for infrastructure
 - Integration tests with Testcontainers so repository adapters run against real Postgres
 - Move generation onto the queue (unblocks §15.2)
 
 **Week 2 — evolution**
+
 - Domain events (`StoreGenerated`, `StorePublished`) via a transactional outbox
 - Extract storefront rendering into its own edge-deployed app so public traffic never touches the builder
 - Feature-flagged prompt versions with side-by-side quality scoring
@@ -594,18 +616,18 @@ Accurate as of submission. Nothing below is implied to work elsewhere in the rep
 
 ## 17. Decision record
 
-| # | Decision | Alternative rejected | Reason |
-|---|---|---|---|
-| 1 | npm workspaces monorepo | Two repos | The shared contract is the point; two repos means duplicated types and version skew on day one |
-| 2 | No Turborepo | Turborepo | Build caching, not architecture. Setup cost buys nothing in 12 hours |
-| 3 | Zod contract package | Types in each app | One definition serving prompt schema, API validation and UI types is what makes the AI boundary safe |
-| 4 | Ports for AI and persistence | Inject `PrismaService` / SDK directly | These are the two volatile dependencies; both must be swappable without touching use cases |
-| 5 | Mock generator shipped | Only the real provider | Enables offline development, zero-cost iteration, and unit tests without a network |
-| 6 | Repair turn on schema failure | Blind retry, or accept partial output | Retry re-rolls the same failure; partial output corrupts the database |
-| 7 | JSON columns for theme/content | A table per section type | Section shapes change constantly; a migration per design tweak is untenable. Zod restores safety at the boundary |
-| 8 | `Decimal(10,2)` | `Float` | Floating point cannot represent currency |
-| 9 | Ownership check in use case | In the controller or a guard | A guard knows who you are, not what you may touch. In the use case it cannot be bypassed by a new route |
-| 10 | Token exchange server-side | Trust the Google token in the frontend | Anything the browser asserts is attacker-controlled |
-| 11 | CSS custom properties for theming | Tailwind config / theme provider | The AI generates arbitrary palettes at runtime; a compile-time theme cannot express that |
-| 12 | Section registry with `never` check | Switch statement | Makes an unhandled section type a compile error and reduces a new section to three lines |
-| 13 | Bonuses cut, cuts documented | Ship partial bonuses | A complete core with an honest gap list is worth more than four half-built features |
+| #   | Decision                            | Alternative rejected                   | Reason                                                                                                           |
+| --- | ----------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| 1   | npm workspaces monorepo             | Two repos                              | The shared contract is the point; two repos means duplicated types and version skew on day one                   |
+| 2   | No Turborepo                        | Turborepo                              | Build caching, not architecture. Setup cost buys nothing in 12 hours                                             |
+| 3   | Zod contract package                | Types in each app                      | One definition serving prompt schema, API validation and UI types is what makes the AI boundary safe             |
+| 4   | Ports for AI and persistence        | Inject `PrismaService` / SDK directly  | These are the two volatile dependencies; both must be swappable without touching use cases                       |
+| 5   | Mock generator shipped              | Only the real provider                 | Enables offline development, zero-cost iteration, and unit tests without a network                               |
+| 6   | Repair turn on schema failure       | Blind retry, or accept partial output  | Retry re-rolls the same failure; partial output corrupts the database                                            |
+| 7   | JSON columns for theme/content      | A table per section type               | Section shapes change constantly; a migration per design tweak is untenable. Zod restores safety at the boundary |
+| 8   | `Decimal(10,2)`                     | `Float`                                | Floating point cannot represent currency                                                                         |
+| 9   | Ownership check in use case         | In the controller or a guard           | A guard knows who you are, not what you may touch. In the use case it cannot be bypassed by a new route          |
+| 10  | Token exchange server-side          | Trust the Google token in the frontend | Anything the browser asserts is attacker-controlled                                                              |
+| 11  | CSS custom properties for theming   | Tailwind config / theme provider       | The AI generates arbitrary palettes at runtime; a compile-time theme cannot express that                         |
+| 12  | Section registry with `never` check | Switch statement                       | Makes an unhandled section type a compile error and reduces a new section to three lines                         |
+| 13  | Bonuses cut, cuts documented        | Ship partial bonuses                   | A complete core with an honest gap list is worth more than four half-built features                              |
