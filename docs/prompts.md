@@ -1059,6 +1059,24 @@ tooling configs — eslint, postcss, commitlint), **zero** uses of `any` in sour
 re-verified from a **fresh clone into a clean directory** so the instructions in the README
 are the instructions that actually work.
 
+**The clean-clone gate earned its place — it found two bugs nothing else could have.**
+
+1. **A fresh clone failed everything.** `@dukkanify/contracts` is consumed through its
+   `dist/`, which is correctly _not_ committed, so `typecheck`, `lint` and 12 of 15 test files
+   failed on `Cannot find module '@dukkanify/contracts'` until it was built. Every check had
+   been passing locally for fifteen blocks because `dist/` was already sitting there. The root
+   `prepare` script now builds contracts as part of `npm install`, so the README's first
+   command is enough.
+2. **`npm run build` needed environment files that a reviewer would not have.**
+   `NEXT_PUBLIC_API_URL` and `AUTH_SECRET` were validated at module load, and `next build`
+   executes those modules to collect page data — so a missing _runtime_ variable failed the
+   _build_ with `Failed to collect page data for /preview/[slug]`. Both are now read on first
+   use: same schema, same sentence, raised at the first request that needs the value rather
+   than at import. A clone that cannot be built is worse than one that cannot be started.
+
+Both fixes have their own commits, and the gate was then re-run from a fresh clone **with no
+`.env` files present at all**: typecheck clean, lint clean, 182 tests green, both builds green.
+
 **Left open** Nothing in the plan. What remains is what §14 says remains — a successful
 generation through a hosted provider, persisted theme edits, and the bonus features that were
 never in scope.
