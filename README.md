@@ -31,7 +31,7 @@ want to sign in.
 
 ```bash
 git clone <this repository> && cd dukkanify
-npm install                      # also runs `prisma generate` in apps/api
+npm install                      # also builds @dukkanify/contracts and runs `prisma generate`
 
 docker compose up -d             # PostgreSQL 16 on port 5433
 cp apps/api/.env.example apps/api/.env

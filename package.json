@@ -18,7 +18,7 @@
     "test": "npm run test --workspaces --if-present",
     "db:migrate": "npm run db:migrate -w api",
     "db:seed": "npm run db:seed -w api",
-    "prepare": "husky"
+    "prepare": "husky && npm run contracts:build"
   },
   "lint-staged": {
     "*.{ts,tsx,json,md}": "prettier --write"
