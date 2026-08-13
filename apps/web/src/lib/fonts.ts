@@ -20,9 +20,10 @@ import {
 const ibmPlexSansArabic = IBM_Plex_Sans_Arabic({
   variable: "--font-ibm-plex-sans-arabic",
   subsets: ["arabic", "latin"],
-  // Not a variable font, so the weights have to be named. These four are what the product
-  // uses: body, emphasis, headings, and the display line on the landing hero.
-  weight: ["400", "500", "600", "700"],
+  // Not a variable font, so every weight is a separate file — and every preloaded file is
+  // bytes ahead of the first paint. Three: body, emphasis, and headings. A fourth was
+  // dropped when nothing turned out to be using it.
+  weight: ["400", "500", "600"],
   display: "swap",
 });
 
@@ -30,6 +31,11 @@ const notoKufiArabic = Noto_Kufi_Arabic({
   variable: "--font-noto-kufi-arabic",
   subsets: ["arabic"],
   display: "swap",
+  // The only font here that no page is guaranteed to use: it is a *generated* theme's
+  // choice, so most visits never need it. Preloading it would spend an Arabic font's worth
+  // of bandwidth before the landing page's first paint, every time, on the chance that a
+  // storefront later asks for it. Fetched on use instead.
+  preload: false,
 });
 
 const sourceSerif4 = Source_Serif_4({

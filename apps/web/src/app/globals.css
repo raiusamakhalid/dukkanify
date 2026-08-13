@@ -73,8 +73,18 @@
   /* Terracotta rather than a generic alert red: it belongs to this palette and still reads
      as a warning at 4.5:1 on sand. */
   --destructive: #9b3a2c;
+  /*
+    Two edges, two jobs, two contrast budgets.
+
+    `--border` draws hairlines that only separate content — a divider nobody has to see to
+    use the page, kept quiet at 1.4:1 so a page of cards does not read as a grid of boxes.
+    `--input` draws the edge of anything a person can act on: a field, an outline button.
+    That one carries information, so it meets the 3:1 WCAG 1.4.11 asks for (3.2:1 on sand,
+    3.4:1 on card). Using the quiet token on a control is what made the landing page's
+    secondary call to action look like plain text.
+  */
   --border: #e1d3bc;
-  --input: #e1d3bc;
+  --input: #a3865e;
   /* Focus is gold — the one place the accent is not decorative. */
   --ring: #c8a24a;
   --radius: 0.75rem;
@@ -99,7 +109,8 @@
   --accent-foreground: #1b120b;
   --destructive: #c4614e;
   --border: #3a2a1d;
-  --input: #43301f;
+  /* Same split as the light theme: 3.4:1 on the night ground, 3.2:1 on a card. */
+  --input: #856c52;
   --ring: #c8a24a;
 }
 
