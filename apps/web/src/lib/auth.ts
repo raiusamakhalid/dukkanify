@@ -25,16 +25,25 @@ const SESSION_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
 /**
  * Auth.js reads this from the environment itself; it is named here only because
  * `getAccessToken` has to decrypt the same cookie Auth.js wrote. Validated rather than
- * assumed, so a missing secret is a sentence at boot instead of every sign-in silently
+ * assumed, so a missing secret is a readable sentence rather than every sign-in silently
  * producing a session with no credential.
+ *
+ * Read on first use, not on import: `next build` executes this module to collect page data,
+ * and a variable that is only needed at runtime should not be able to fail a build.
  */
-const AUTH_SECRET = z
+const AUTH_SECRET_SCHEMA = z
   .string()
   .min(
     32,
     "AUTH_SECRET must be at least 32 characters — generate one with `openssl rand -hex 32`",
-  )
-  .parse(process.env.AUTH_SECRET);
+  );
+
+let authSecret: string | undefined;
+
+function sessionSecret(): string {
+  authSecret ??= AUTH_SECRET_SCHEMA.parse(process.env.AUTH_SECRET);
+  return authSecret;
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [Google],
@@ -104,12 +113,12 @@ export async function getAccessToken(): Promise<string | null> {
   const token =
     (await getToken({
       req: request,
-      secret: AUTH_SECRET,
+      secret: sessionSecret(),
       secureCookie: true,
     })) ??
     (await getToken({
       req: request,
-      secret: AUTH_SECRET,
+      secret: sessionSecret(),
       secureCookie: false,
     }));
 

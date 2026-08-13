@@ -12,13 +12,27 @@ import { z } from "zod";
  * `lib/auth.ts` is the session-aware entry point built on top of it.
  */
 
-/** The only public variable the web app has (architecture.md §12). Read exactly once. */
-const API_URL = z
+/**
+ * The only public variable the web app has (architecture.md §12). Read exactly once, and on
+ * first *use* rather than on import.
+ *
+ * The difference matters: `next build` executes these modules to collect page data, so
+ * validating at import turns a missing runtime variable into a failed build — and a clone
+ * that cannot be built is worse than one that cannot be started. Validated all the same, with
+ * the same sentence, at the first request that needs it.
+ */
+const API_URL_SCHEMA = z
   .string()
   .url(
     "NEXT_PUBLIC_API_URL must be an absolute URL, e.g. http://localhost:4000/api/v1",
-  )
-  .parse(process.env.NEXT_PUBLIC_API_URL);
+  );
+
+let apiUrl: string | undefined;
+
+function apiBaseUrl(): string {
+  apiUrl ??= API_URL_SCHEMA.parse(process.env.NEXT_PUBLIC_API_URL);
+  return apiUrl;
+}
 
 /** Long enough for a slow database read, short enough that a hung socket is not a spinner
     forever. Generation is the one call that legitimately takes longer and passes its own. */
@@ -202,7 +216,7 @@ export async function apiRequest<T>(
     like every other failure, so nothing has to handle two kinds of thing. */
 async function send(path: string, init: RequestInit): Promise<Response> {
   try {
-    return await fetch(`${API_URL}${path}`, init);
+    return await fetch(`${apiBaseUrl()}${path}`, init);
   } catch (cause) {
     const timedOut = cause instanceof Error && cause.name === "TimeoutError";
     throw new ApiError(
