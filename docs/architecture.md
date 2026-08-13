@@ -588,7 +588,8 @@ direct payoff of the dependency rule in §3.
 Accurate as of submission. Nothing below is implied to work elsewhere in the repo.
 
 - **Bonus features not implemented:** SSE streaming, undo/redo, version history writer.
-  `StoreVersion` exists in the schema with no producer.
+  Next.js Server Actions _are_ implemented — generation and every section save go through
+  one (§7, §5).
 - **Gemini is implemented but sends no response schema.** `GeminiGenerator` sits behind
   the same `AiGeneratorPort` as Claude and is selected by `AI_PROVIDER=gemini`. It asks for
   `application/json` and nothing more: the API rejects the generated blueprint schema with
@@ -607,12 +608,31 @@ Accurate as of submission. Nothing below is implied to work elsewhere in the rep
   per-day limits are told apart and answered as 503 with different messages. A successful
   generation through a hosted provider is still owed; `AI_PROVIDER=mock` is what every
   other verification in this repo runs on.
-- **Product imagery is deterministic placeholder generation.** No image model wired in.
-- **No HTTP e2e or repository integration tests.** Unit coverage only, as scoped in §13.
+- **Theme edits are preview-only.** The editor's colour pickers write `--brand-*` straight
+  onto the canvas, so a drag repaints every section instantly — but nothing persists them.
+  The API has no endpoint that updates a theme: `PATCH /store/:id/sections/:sectionId` is
+  section content only, and `POST /store` would replace the whole aggregate and reassign
+  every id. The panel says so on screen rather than failing quietly. Text edits _do_ persist.
+- **Product imagery is a drawn placeholder, not generated.** `imageUrl` is null on every
+  product this application has ever saved; each tile is a gradient from the store's own
+  palette, angled by the SKU, with the product's initials over it. No image model is wired in.
+- **No HTTP e2e or repository integration tests.** Unit coverage only, as scoped in §13. The
+  end-to-end paths were verified by driving a real browser against the running stack —
+  reproducible by hand, not by CI.
 - **Single-region, single-instance deployment.** No cache layer, no read replicas.
-- **Arabic generation works but is untested end to end.** RTL layout is verified; the
-  quality of generated Arabic copy is not measured.
+- **An Arabic prompt produces an Arabic _shop_ with English _copy_.** Locale, reading
+  direction and the Arabic-capable typeface are all correct and verified in a browser
+  (`lang="ar" dir="rtl"`), but `MockGenerator`'s catalogue text is written in English — it
+  matches Arabic keywords, it does not write Arabic. Only a hosted provider closes this.
+- **`StoreVersion` exists in the schema with no producer.** Nothing writes a version row; it
+  is the table version history would be built on, and it is empty by design rather than by
+  oversight.
 - **No image upload, no publishing to a custom domain, no billing.** Out of scope.
+- **The storefront is one scrolling document, not three routes.** `/preview/:slug` stacks the
+  Home, About and Contact pages with in-page anchors, because a generated `ctaHref` is an
+  anchor and a shop a customer can read by scrolling beats two extra navigations. The pages
+  are still separate rows with their own slugs, so splitting them into routes later is a
+  routing change and not a data change.
 
 ---
 
