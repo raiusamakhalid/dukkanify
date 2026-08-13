@@ -105,10 +105,28 @@ export function isApiError(error: unknown): error is ApiError {
   return error instanceof ApiError;
 }
 
+/**
+ * What this client needs from a schema, and nothing more.
+ *
+ * Deliberately structural rather than `z.ZodType<T>`. `@dukkanify/contracts` is compiled to
+ * CommonJS, so its declarations resolve zod's `.d.cts` types, while this app resolves the
+ * ESM `.d.ts` — the same library, two nominally unrelated sets of types, and passing a
+ * contracts schema to a `z.ZodType<T>` parameter fails with "two different types with this
+ * name exist". Asking only for `safeParse` sidesteps the question entirely: every zod schema
+ * from either build satisfies it, and `T` is still inferred from the parsed data.
+ */
+export interface ResponseSchema<T> {
+  safeParse(
+    value: unknown,
+  ):
+    | { success: true; data: T }
+    | { success: false; error: { issues: readonly unknown[] } };
+}
+
 export interface ApiRequestOptions<T> {
   /** Required, not optional: an API response is external input, and CLAUDE.md admits no
       unvalidated external input. It is also what makes the return type honest. */
-  schema: z.ZodType<T>;
+  schema: ResponseSchema<T>;
   method?: "GET" | "POST" | "PATCH";
   body?: unknown;
   /** The application JWT from the session. Omitted for public endpoints. */

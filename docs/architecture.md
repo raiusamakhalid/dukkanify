@@ -175,32 +175,51 @@ components: the prompt composer, the editor panel, the device toggle. The storef
 sections stay server-rendered in the public route and are reused client-side inside
 the builder — **one set of components, two contexts**.
 
-### Section renderer registry
+### Section renderer
 
-```ts
-type SectionProps = { content: SectionContent; theme: ThemeTokens };
+```tsx
+export function SectionRenderer({
+  section,
+  store,
+}: {
+  section: SectionDto;
+  store: StoreDto;
+}) {
+  const { content } = section;
 
-const SECTION_REGISTRY: Record<SectionType, ComponentType<SectionProps>> = {
-  HERO: HeroSection,
-  CATEGORY_GRID: CategoryGridSection,
-  PRODUCT_GRID: ProductGridSection,
-  RICH_TEXT: RichTextSection,
-  CONTACT: ContactSection,
-};
-
-export function SectionRenderer({ section, theme }: Props) {
-  const Component = SECTION_REGISTRY[section.type];
-  if (!Component) {
-    const _exhaustive: never = section.type;   // compile error if an enum member is unhandled
-    return null;
+  switch (content.type) {
+    case "HERO":
+      return <HeroSection content={content} />;
+    case "CATEGORY_GRID":
+      return <CategoryGridSection content={content} store={store} />;
+    case "PRODUCT_GRID":
+      return <ProductGridSection content={content} store={store} />;
+    case "RICH_TEXT":
+      return <RichTextSection content={content} />;
+    case "CONTACT":
+      return <ContactSection content={content} />;
+    default: {
+      const unhandled: never = content; // compile error if a content variant is unhandled
+      return unhandled;
+    }
   }
-  return <Component content={section.content} theme={theme} />;
 }
 ```
 
-Adding a section type is: one enum value in contracts, one component file, one registry
-line. The `never` assignment makes forgetting the component a **compile error**, not a
+Adding a section type is: one variant in `SectionContentSchema`, one component file, one
+case here. The `never` assignment makes forgetting the third a **compile error**, not a
 runtime blank space. This is the design the 15-minute live-coding round will exercise.
+
+Two notes on the shape, both settled in block 13 against an earlier sketch of this section:
+
+- **A `switch`, not a `Record<SectionType, ComponentType<Props>>`.** An object registry
+  cannot hand a component its _narrowed_ content: the record widens every value to the whole
+  union, and recovering the narrow type at the call site needs a cast, which CLAUDE.md bans.
+  A switch narrows for free, so `HeroSection` is typed against `HeroContent` alone.
+- **Sections receive `store`, not `theme`.** `CATEGORY_GRID` and `PRODUCT_GRID` hold slug
+  _references_ into the store's own catalogue and cannot render from content alone. The theme
+  is not passed at all — `Storefront` writes it to `--brand-*` custom properties on a wrapper
+  and every section paints with those (§11), which is what makes live colour editing free.
 
 ---
 
