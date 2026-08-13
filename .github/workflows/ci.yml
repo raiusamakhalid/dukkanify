@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # architecture.md §3 — the check that separates real layering from decorative
+      # folders. domain/ may import no framework at all; application/ may not reach
+      # for a concrete implementation. Directories are globbed, so this is a no-op
+      # until the modules exist and tightens automatically as they land.
+      - name: Dependency rule
+        run: |
+          set -uo pipefail
+          fail=0
+
+          domain=$(grep -rn --include='*.ts' -E \
+            "@nestjs/|@prisma/client|@anthropic-ai/sdk|generated/prisma|PrismaService" \
+            apps/api/src/modules/*/domain 2>/dev/null || true)
+          if [ -n "$domain" ]; then
+            echo "::error::domain/ must import no framework — it is the innermost layer"
+            echo "$domain"
+            fail=1
+          fi
+
+          application=$(grep -rn --include='*.ts' -E \
+            "@prisma/client|@anthropic-ai/sdk|generated/prisma|PrismaService" \
+            apps/api/src/modules/*/application 2>/dev/null || true)
+          if [ -n "$application" ]; then
+            echo "::error::application/ must depend on ports, never on implementations"
+            echo "$application"
+            fail=1
+          fi
+
+          exit $fail
+
+      # apps/web must stay direction-agnostic: physical spacing utilities cannot be
+      # mirrored, logical ones are free. Cheap now, expensive to retrofit later.
+      - name: Logical CSS only
+        run: |
+          set -uo pipefail
+          physical=$(grep -rnE '\bclassName="[^"]*\b(ml|mr|pl|pr)-' \
+            apps/web/src 2>/dev/null || true)
+          if [ -n "$physical" ]; then
+            echo "::error::use logical spacing (ms/me/ps/pe) so RTL works for free"
+            echo "$physical"
+            exit 1
+          fi
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm run test
+
+      # Switches to the root `npm run build` once packages/contracts exists, which
+      # is the workspace the root script builds first.
+      - name: Build
+        run: |
+          npm run build -w api
+          npm run build -w web
