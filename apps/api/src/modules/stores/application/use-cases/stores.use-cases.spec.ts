@@ -1,146 +1,17 @@
-import type { StoreBlueprint, ThemeTokens } from '@dukkanify/contracts';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { PROMPT, blueprintFor } from '../../../../../test/blueprint.fixture';
+import { InMemoryStores } from '../../../../../test/in-memory-store.repository';
 import {
   ForbiddenError,
   NotFoundError,
   ValidationError,
 } from '../../../../common/errors/domain.error';
-import type { Section } from '../../domain/entities/section.entity';
 import type { Store } from '../../domain/entities/store.entity';
-import type {
-  StoreRepositoryPort,
-  StoreSummary,
-} from '../../domain/ports/store.repository.port';
-import type { Slug } from '../../domain/value-objects/slug.vo';
 import { GetStoreUseCase } from './get-store.use-case';
 import { GetStorefrontUseCase } from './get-storefront.use-case';
 import { ListStoresUseCase } from './list-stores.use-case';
 import { SaveStoreUseCase } from './save-store.use-case';
 import { UpdateSectionUseCase } from './update-section.use-case';
-
-/**
- * The whole application layer, with the database replaced by a Map.
- *
- * This is the payoff of the port: no PostgreSQL, no Nest container, no network — the rules
- * these tests are about (who may read a store, what a 404 means versus a 403) are decided
- * in the use cases, so that is where they can be checked.
- */
-class InMemoryStores implements StoreRepositoryPort {
-  readonly rows = new Map<string, Store>();
-  savedSections: Array<{ storeId: string; section: Section }> = [];
-
-  save(store: Store): Promise<Store> {
-    this.rows.set(store.id, store);
-    return Promise.resolve(store);
-  }
-
-  findById(storeId: string): Promise<Store | null> {
-    return Promise.resolve(this.rows.get(storeId) ?? null);
-  }
-
-  findBySlug(slug: Slug): Promise<Store | null> {
-    const match = [...this.rows.values()].find((store) =>
-      store.slug.equals(slug),
-    );
-    return Promise.resolve(match ?? null);
-  }
-
-  listByOwner(ownerId: string): Promise<readonly StoreSummary[]> {
-    return Promise.resolve(
-      [...this.rows.values()].filter((store) => store.isOwnedBy(ownerId)),
-    );
-  }
-
-  existsBySlug(slug: Slug): Promise<boolean> {
-    return Promise.resolve(
-      [...this.rows.values()].some((store) => store.slug.equals(slug)),
-    );
-  }
-
-  saveSection(storeId: string, section: Section): Promise<void> {
-    this.savedSections.push({ storeId, section });
-    return Promise.resolve();
-  }
-}
-
-const THEME: ThemeTokens = {
-  colors: {
-    primary: '#8A6D3B',
-    secondary: '#3A2C14',
-    accent: '#C8A24A',
-    background: '#F6E7C1',
-    foreground: '#1B120B',
-    muted: '#9C8A6A',
-  },
-  fonts: { display: 'ibm-plex-sans-arabic', body: 'source-serif-4' },
-  radius: '0.75rem',
-  spacing: 'generous',
-};
-
-function blueprintFor(name: string): StoreBlueprint {
-  return {
-    store: {
-      name,
-      tagline: 'Aged oud from Sharjah',
-      locale: 'en',
-      currency: 'AED',
-    },
-    theme: THEME,
-    categories: [
-      { name: 'Attar', slug: 'attar' },
-      { name: 'Bukhoor', slug: 'bukhoor' },
-    ],
-    products: Array.from({ length: 8 }, (_unused, index) => ({
-      name: `Product ${index + 1}`,
-      description: 'A twelve-hour maceration of Cambodian oud and Taif rose.',
-      price: 249.567,
-      sku: `OUD-ROYAL-0${index + 1}`,
-      categorySlug: index % 2 === 0 ? 'attar' : 'bukhoor',
-    })),
-    pages: [
-      {
-        type: 'HOME',
-        title: 'Home',
-        slug: 'home',
-        sections: [
-          {
-            type: 'HERO',
-            headline: 'Oud, aged the long way',
-            subheadline: 'Blended in Sharjah, bottled in small batches.',
-            ctaLabel: 'Shop the collection',
-            ctaHref: '#products',
-          },
-        ],
-      },
-      {
-        type: 'ABOUT',
-        title: 'Our story',
-        slug: 'about',
-        sections: [
-          {
-            type: 'RICH_TEXT',
-            heading: 'Our story',
-            paragraphs: ['Founded in Sharjah in 1998.'],
-          },
-        ],
-      },
-      {
-        type: 'CONTACT',
-        title: 'Visit us',
-        slug: 'contact',
-        sections: [
-          {
-            type: 'CONTACT',
-            heading: 'Visit us',
-            email: 'salam@dukkan.ae',
-            phone: '+971 4 504 4058',
-            addressLines: ['Al Wasl Road, Dubai'],
-          },
-        ],
-      },
-    ],
-  };
-}
 
 const OWNER = 'user-1';
 const INTRUDER = 'user-2';
@@ -154,7 +25,7 @@ async function seedStore(
 ): Promise<Store> {
   return save.execute({
     ownerId,
-    prompt: 'Create a luxury perfume store for UAE customers',
+    prompt: PROMPT,
     promptVersion: 'test.1',
     blueprint: blueprintFor(name),
   });
@@ -224,7 +95,7 @@ describe('SaveStoreUseCase', () => {
     const replaced = await save.execute({
       ownerId: OWNER,
       storeId: original.id,
-      prompt: 'Create a luxury perfume store for UAE customers',
+      prompt: PROMPT,
       promptVersion: 'test.2',
       blueprint: blueprintFor('A Completely Different Name'),
     });
@@ -242,7 +113,7 @@ describe('SaveStoreUseCase', () => {
       save.execute({
         ownerId: INTRUDER,
         storeId: original.id,
-        prompt: 'Create a luxury perfume store for UAE customers',
+        prompt: PROMPT,
         promptVersion: 'test.2',
         blueprint: blueprintFor('Hijacked'),
       }),

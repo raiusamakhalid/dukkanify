@@ -1,11 +1,16 @@
+import type { StoreBlueprint } from '@dukkanify/contracts';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { PROMPT } from '../../../../../test/blueprint.fixture';
+import {
+  SCRIPTED_PROMPT_VERSION,
+  ScriptedGenerator,
+  mockBlueprint,
+} from '../../../../../test/scripted-generator';
 import { BlueprintGenerationFailedError } from '../../../../common/errors/domain.error';
 import type {
   AiGeneratorPort,
-  BlueprintGenerationRequest,
   GeneratedBlueprint,
 } from '../../domain/ports/ai-generator.port';
-import { MockGenerator } from '../../infrastructure/providers/mock.generator';
 import { BlueprintRepairService } from './blueprint-repair.service';
 
 /**
@@ -14,32 +19,11 @@ import { BlueprintRepairService } from './blueprint-repair.service';
  * No network and no key: the port is what makes "what happens when the model returns
  * nonsense twice" a unit test rather than a story told during code review.
  */
-class ScriptedGenerator implements AiGeneratorPort {
-  readonly requests: BlueprintGenerationRequest[] = [];
 
-  constructor(private readonly answers: readonly unknown[]) {}
-
-  generate(request: BlueprintGenerationRequest): Promise<GeneratedBlueprint> {
-    this.requests.push(request);
-    const raw = this.answers[this.requests.length - 1];
-    return Promise.resolve({ raw, promptVersion: 'test.1' });
-  }
-}
-
-const PROMPT = 'Create a luxury perfume store for UAE customers';
-
-async function validBlueprint(): Promise<unknown> {
-  const generated = await new MockGenerator().generate({
-    prompt: PROMPT,
-    locale: 'en',
-  });
-  return generated.raw;
-}
-
-let good: unknown;
+let good: StoreBlueprint;
 
 beforeEach(async () => {
-  good = await validBlueprint();
+  good = await mockBlueprint();
 });
 
 describe('BlueprintRepairService', () => {
@@ -52,7 +36,7 @@ describe('BlueprintRepairService', () => {
     });
 
     expect(produced.attempts).toBe(1);
-    expect(produced.promptVersion).toBe('test.1');
+    expect(produced.promptVersion).toBe(SCRIPTED_PROMPT_VERSION);
     expect(generator.requests).toHaveLength(1);
     expect(generator.requests[0]?.repair).toBeUndefined();
   });
@@ -70,10 +54,7 @@ describe('BlueprintRepairService', () => {
   });
 
   it('hands the repair turn the previous output and the exact faults', async () => {
-    const sevenProducts = {
-      ...(good as { products: unknown[] }),
-      products: (good as { products: unknown[] }).products.slice(0, 7),
-    };
+    const sevenProducts = { ...good, products: good.products.slice(0, 7) };
     const generator = new ScriptedGenerator([sevenProducts, good]);
 
     await new BlueprintRepairService(generator).produce({

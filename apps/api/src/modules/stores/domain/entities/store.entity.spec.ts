@@ -1,5 +1,6 @@
-import type { PageType, ThemeTokens } from '@dukkanify/contracts';
+import type { PageType } from '@dukkanify/contracts';
 import { describe, expect, it } from 'vitest';
+import { PROMPT, THEME } from '../../../../../test/blueprint.fixture';
 import { ValidationError } from '../../../../common/errors/domain.error';
 import { Money } from '../value-objects/money.vo';
 import { Slug } from '../value-objects/slug.vo';
@@ -7,20 +8,6 @@ import { Page } from './page.entity';
 import { Product } from './product.entity';
 import { Section } from './section.entity';
 import { Category, Store, type StoreProps } from './store.entity';
-
-const THEME: ThemeTokens = {
-  colors: {
-    primary: '#8A6D3B',
-    secondary: '#3A2C14',
-    accent: '#C8A24A',
-    background: '#F6E7C1',
-    foreground: '#1B120B',
-    muted: '#9C8A6A',
-  },
-  fonts: { display: 'ibm-plex-sans-arabic', body: 'source-serif-4' },
-  radius: '0.75rem',
-  spacing: 'generous',
-};
 
 const SECTION_CONTENT = {
   HOME: {
@@ -88,7 +75,7 @@ function storeWith(overrides: Partial<StoreProps> = {}): StoreProps {
     name: 'Dukkan Al Oud',
     slug: Slug.create('dukkan-al-oud'),
     tagline: 'Aged oud from Sharjah',
-    prompt: 'Create a luxury perfume store for UAE customers',
+    prompt: PROMPT,
     promptVersion: '2026-08-13.1',
     status: 'DRAFT',
     locale: 'en',
