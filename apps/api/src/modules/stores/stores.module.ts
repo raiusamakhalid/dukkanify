@@ -25,5 +25,8 @@ import { StoresController } from './presentation/stores.controller';
     SaveStoreUseCase,
     UpdateSectionUseCase,
   ],
+  // Generation reaches persistence through the same validated write path as `POST /store`,
+  // so there is one place that decides how a blueprint becomes rows.
+  exports: [SaveStoreUseCase],
 })
 export class StoresModule {}
