@@ -16,6 +16,13 @@ declare module "@auth/core/types" {
         session exists but carries no credential. The dashboard guard reads it. */
     error?: string | undefined;
   }
+
+  interface User {
+    /** Carried out of the Credentials provider's `authorize`, which has already exchanged the
+        password for an application token, to the `jwt` callback that puts it on the token.
+        Absent on the Google path, where the exchange happens in the callback itself. */
+    accessToken?: string | undefined;
+  }
 }
 
 declare module "@auth/core/jwt" {

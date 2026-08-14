@@ -64,6 +64,7 @@ export type ApiErrorKind =
   | "unauthorized" // 401 — the session is gone or was never valid; sign in again
   | "forbidden" // 403 — signed in, but this is someone else's store
   | "not-found" // 404
+  | "conflict" // 409 — the request was fine and the state of the world refuses it
   | "generation-failed" // 422 — the model could not produce a valid storefront
   | "rate-limited" // 429 — too many generations this minute
   | "unavailable" // 503 — the AI provider is down or timed out
@@ -75,6 +76,7 @@ const KIND_BY_STATUS: Readonly<Record<number, ApiErrorKind>> = {
   401: "unauthorized",
   403: "forbidden",
   404: "not-found",
+  409: "conflict",
   422: "generation-failed",
   429: "rate-limited",
   503: "unavailable",
@@ -87,6 +89,7 @@ const FALLBACK_MESSAGE: Readonly<Record<ApiErrorKind, string>> = {
   unauthorized: "Your session has expired. Sign in again to continue.",
   forbidden: "This store belongs to another account.",
   "not-found": "We could not find that.",
+  conflict: "That already exists.",
   "generation-failed":
     "The store generator could not build a storefront from that description. Try rewording it.",
   "rate-limited": "That is a lot of stores at once. Try again in a minute.",

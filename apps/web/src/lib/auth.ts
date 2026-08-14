@@ -1,6 +1,7 @@
-import { AuthResponseSchema } from "@dukkanify/contracts";
-import NextAuth from "next-auth";
+import { AuthResponseSchema, SignInRequestSchema } from "@dukkanify/contracts";
+import NextAuth, { type User } from "next-auth";
 import { getToken } from "next-auth/jwt";
+import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import { headers } from "next/headers";
 import { z } from "zod";
@@ -45,8 +46,51 @@ function sessionSecret(): string {
   return authSecret;
 }
 
+/**
+ * The password door, as an Auth.js provider rather than a Server Action of its own.
+ *
+ * One session mechanism is the whole point: whichever way a visitor gets in, the credential
+ * ends up on the same encrypted cookie, and `getAccessToken` below stays the only reader.
+ * A hand-rolled cookie beside Auth.js would be two sources of truth about who is signed in.
+ *
+ * `authorize` returns `null` for every failure — wrong password, unknown address, API
+ * unreachable. Auth.js turns that into `CredentialsSignin`, and the form maps it to the one
+ * sentence the API already chose. Distinguishing them here would leak exactly what the API
+ * refuses to (architecture.md §8).
+ */
+const PasswordCredentials = Credentials({
+  credentials: { email: { type: "email" }, password: { type: "password" } },
+  authorize: async (credentials): Promise<User | null> => {
+    // Whatever arrives at a provider is a form post, which makes it external input.
+    const parsed = SignInRequestSchema.safeParse(credentials);
+    if (!parsed.success) {
+      return null;
+    }
+
+    try {
+      const { accessToken, user } = await apiRequest("/auth/login", {
+        method: "POST",
+        body: parsed.data,
+        schema: AuthResponseSchema,
+      });
+      return {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        image: user.avatarUrl,
+        accessToken,
+      };
+    } catch (cause) {
+      // Logged, because "the API was down" and "the password was wrong" look identical from
+      // the browser and only one of them is worth waking someone up for.
+      console.error("Password sign-in was refused", cause);
+      return null;
+    }
+  },
+});
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  providers: [Google],
+  providers: [Google, PasswordCredentials],
   session: { strategy: "jwt", maxAge: SESSION_MAX_AGE_SECONDS },
   pages: { signIn: "/login", error: "/login" },
   callbacks: {
@@ -54,7 +98,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
      * Runs on sign-in with `account` present, and on every session read without it. The
      * exchange therefore happens exactly once per sign-in; afterwards the token is carried.
      */
-    async jwt({ token, account }) {
+    async jwt({ token, account, user }) {
+      // The password path exchanged its credential inside `authorize`, so there is nothing to
+      // call here — only a token to carry across. It has to come first: a credentials sign-in
+      // has an `account` with no `id_token`, which the Google branch below reads as "not a
+      // sign-in" and returns untouched, leaving a session that looks valid and has no
+      // credential on it. Every API call would then fail one at a time.
+      if (account?.provider === "credentials") {
+        return { ...token, accessToken: user.accessToken, error: undefined };
+      }
+
       if (account?.id_token === undefined) {
         return token;
       }
