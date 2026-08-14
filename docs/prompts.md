@@ -1117,3 +1117,21 @@ push.
 - Landing-page lists use `list-none` so the step badge is not doubled by the browser marker.
 
 **Trade-off** No custom domain. The shareable URL is still `/preview/:slug` on the web app.
+
+---
+
+## Follow-up — Gemini Flash-Lite 400 and a blank generate error
+
+**Prompt** Screenshot of "An unexpected error occurred" on generate; should display a proper
+error and fix it.
+
+**What it produced** Live bisect: `gemini-3.5-flash-lite` accepts JSON mode and rejects
+`thinkingConfig: { thinkingBudget: 0 }` with `400 INVALID_ARGUMENT`. `GeminiGenerator` now
+omits that field on lite models, maps Gemini 400/403/404 to `AiProviderUnavailableError`
+(503) so the form shows the reason instead of a generic 500, and Gemini's system prompt
+carries `STORE_BLUEPRINT_TOOL_SCHEMA` because the API still will not accept it as
+`responseJsonSchema`. Prompt version `2026-08-14.1`.
+
+**Trade-off** 400/403 used to fall through to 500 on purpose (§10: an application bug).
+That hid the only fact the operator could act on. They are now a 503 with a readable
+message; a leftover 4xx that is not 400/403/404 still becomes 500.

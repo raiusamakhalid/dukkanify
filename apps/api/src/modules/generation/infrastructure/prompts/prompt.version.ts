@@ -5,7 +5,7 @@
  * what makes "generation got worse last Tuesday" a query rather than an argument (§7):
  * `SELECT promptVersion, count(*) FROM "Store"` attributes quality to a specific revision.
  */
-export const PROMPT_VERSION = '2026-08-13.1';
+export const PROMPT_VERSION = '2026-08-14.1';
 
 /**
  * Reported by the mock provider instead. A store assembled from a fixture is not evidence

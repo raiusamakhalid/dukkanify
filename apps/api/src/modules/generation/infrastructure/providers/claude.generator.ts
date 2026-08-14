@@ -15,7 +15,7 @@ import type {
   GeneratedBlueprint,
 } from '../../domain/ports/ai-generator.port';
 import { PROMPT_VERSION } from '../prompts/prompt.version';
-import { SYSTEM_PROMPT } from '../prompts/system.prompt';
+import { SYSTEM_PROMPT_FOR_TOOL_USE } from '../prompts/system.prompt';
 import { buildRepairPrompt, buildUserPrompt } from '../prompts/user.prompt';
 
 /** A storefront is a few thousand tokens; a minute is generous and bounds a wedged socket. */
@@ -107,7 +107,7 @@ export class ClaudeGenerator implements AiGeneratorPort {
         {
           model: this.model,
           max_tokens: this.maxTokens,
-          system: SYSTEM_PROMPT,
+          system: SYSTEM_PROMPT_FOR_TOOL_USE,
           // Adaptive thinking is on by default on current models and shares the `max_tokens`
           // budget with the answer. This task is structured extraction against a fixed
           // schema, not open reasoning, so the budget goes entirely to the blueprint — which

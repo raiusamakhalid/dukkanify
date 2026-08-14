@@ -117,6 +117,26 @@ describe('GeminiGenerator', () => {
     expect(params?.config.abortSignal).toBeInstanceOf(AbortSignal);
   });
 
+  it('omits thinkingConfig on Flash-Lite, which rejects the field as 400', async () => {
+    const lite = new AppConfig(
+      validateEnv({
+        DATABASE_URL: 'postgresql://user:pass@localhost:5432/dukkanify',
+        JWT_SECRET: 'test-secret-that-is-long-enough-32chars',
+        GOOGLE_CLIENT_ID: 'test.apps.googleusercontent.com',
+        AI_PROVIDER: 'gemini',
+        GEMINI_API_KEY: 'test-key',
+        AI_MODEL: 'gemini-3.5-flash-lite',
+      }),
+    );
+    const generateContent = responding({ text: '{}' });
+
+    await new GeminiGenerator(lite, { generateContent }).generate(REQUEST);
+
+    const [params] = vi.mocked(generateContent).mock.calls[0] ?? [];
+    expect(params?.model).toBe('gemini-3.5-flash-lite');
+    expect(params?.config).not.toHaveProperty('thinkingConfig');
+  });
+
   it('returns unparseable output as-is, so the repair turn can quote it back', async () => {
     const generateContent = responding({
       text: 'Sorry — here is your store: {oops',
@@ -251,14 +271,31 @@ describe('GeminiGenerator', () => {
     });
   });
 
-  it('lets a rejected request surface as a server error rather than a 503', async () => {
-    // A 400 means our model name or our request is wrong. "Try again shortly" would be a
-    // lie, and it would hide the bug behind a retry.
-    const invalid = apiError(400, 'Request contains an invalid argument.');
-    const generateContent = failing(invalid);
+  it('answers 503 when the model id has been retired', async () => {
+    const generateContent = failing(
+      apiError(404, 'This model is no longer available to new users.'),
+    );
 
     await expect(
       new GeminiGenerator(config, { generateContent }).generate(REQUEST),
-    ).rejects.toBe(invalid);
+    ).rejects.toThrow(/no longer available/i);
+  });
+
+  it('answers 503 when Gemini refuses the request, so the form is not a blank 500', async () => {
+    const generateContent = failing(
+      apiError(400, 'Request contains an invalid argument.'),
+    );
+
+    await expect(
+      new GeminiGenerator(config, { generateContent }).generate(REQUEST),
+    ).rejects.toThrow(/rejected the request/i);
+  });
+
+  it('answers 503 when the key is refused', async () => {
+    const generateContent = failing(apiError(403, 'PERMISSION_DENIED'));
+
+    await expect(
+      new GeminiGenerator(config, { generateContent }).generate(REQUEST),
+    ).rejects.toThrow(/key was refused/i);
   });
 });

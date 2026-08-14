@@ -16,7 +16,7 @@ import type {
   GeneratedBlueprint,
 } from '../../domain/ports/ai-generator.port';
 import { PROMPT_VERSION } from '../prompts/prompt.version';
-import { SYSTEM_PROMPT } from '../prompts/system.prompt';
+import { SYSTEM_PROMPT_FOR_JSON_OUTPUT } from '../prompts/system.prompt';
 import { buildRepairPrompt, buildUserPrompt } from '../prompts/user.prompt';
 
 /** Matches the Claude adapter: a storefront is quick, a minute bounds a wedged socket. */
@@ -122,16 +122,12 @@ export class GeminiGenerator implements AiGeneratorPort {
         model: this.model,
         contents: userMessageFor(request),
         config: {
-          systemInstruction: SYSTEM_PROMPT,
+          systemInstruction: SYSTEM_PROMPT_FOR_JSON_OUTPUT,
           // Guarantees a parseable body. The shape inside it is this application's problem.
           responseMimeType: 'application/json',
           maxOutputTokens: this.maxTokens,
-          // Thinking is on by default and its tokens come out of `maxOutputTokens`: an
-          // eight-thousand-token budget was observed being spent entirely on thoughts,
-          // returning MAX_TOKENS with an empty body. This is structured extraction against
-          // a schema, so the whole budget goes to the answer.
-          thinkingConfig: { thinkingBudget: 0 },
           abortSignal: controller.signal,
+          ...thinkingConfigFor(this.model),
         },
       });
     } catch (error) {
@@ -189,6 +185,30 @@ export class GeminiGenerator implements AiGeneratorPort {
       return this.quotaError(error);
     }
 
+    if (status === 404) {
+      // Retired model ids land here (e.g. gemini-2.5-flash for new keys). A 500 would hide
+      // the one action that helps: pick a current Flash model.
+      this.logger.error(`Gemini model not found: ${this.model}`);
+      return new AiProviderUnavailableError(
+        'The configured AI model is no longer available. Set AI_MODEL to a current Gemini Flash model and restart.',
+      );
+    }
+
+    if (status === 400 || status === 403) {
+      // A 500 "unexpected error" hid the only useful fact: Google refused the request.
+      // Flash-Lite rejecting `thinkingConfig` is the case that taught us this.
+      this.logger.error(
+        `Gemini rejected the request (${String(status)}): ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      return new AiProviderUnavailableError(
+        status === 403
+          ? 'The store generator key was refused. Check GEMINI_API_KEY.'
+          : 'The store generator rejected the request. Try a current Gemini Flash model, or set AI_PROVIDER to mock.',
+      );
+    }
+
     if (status !== undefined && status >= 500) {
       // Overload, almost always, and gone by the next attempt: marked transient so
       // RetryingGenerator tries again rather than failing a page on one vendor hiccup.
@@ -204,8 +224,6 @@ export class GeminiGenerator implements AiGeneratorPort {
       return AiProviderUnavailableError.transient();
     }
 
-    // 400 or 403 is our schema, our model name or our key — this application's bug, and a
-    // 500 with a request id is the honest answer. Never logged: the key itself.
     if (error instanceof Error) {
       this.logger.error(`Gemini rejected the request: ${error.message}`);
     }
@@ -241,6 +259,20 @@ export class GeminiGenerator implements AiGeneratorPort {
         : `The store generator is busy. Please try again in about ${retryAfter} seconds.`,
     );
   }
+}
+
+/**
+ * Flash models spend `maxOutputTokens` on thoughts unless thinking is turned off.
+ * Flash-Lite rejects `thinkingConfig` with `400 INVALID_ARGUMENT` — confirmed live for
+ * `gemini-3.5-flash-lite`. Omit the field there; do not send `thinkingBudget: 0`.
+ */
+function thinkingConfigFor(
+  model: string,
+): Pick<GenerateContentConfig, 'thinkingConfig'> {
+  if (/lite/i.test(model)) {
+    return {};
+  }
+  return { thinkingConfig: { thinkingBudget: 0 } };
 }
 
 /** The SDK's `ApiError` carries `status`; a transport failure carries nothing. */

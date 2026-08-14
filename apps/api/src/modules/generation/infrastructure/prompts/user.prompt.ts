@@ -18,7 +18,7 @@ ${prompt}
 
 Store locale: ${locale} (${LOCALE_DIRECTION[locale]}).
 
-Design this storefront and return it through the tool.`;
+Design this storefront and return the blueprint.`;
 }
 
 /**
@@ -50,7 +50,7 @@ These are the problems with it, each naming the exact field:
 
 ${issues}
 
-Fix only what is listed, keep everything else as it was, and return the corrected blueprint through the tool.`;
+Fix only what is listed, keep everything else as it was, and return the corrected blueprint.`;
 }
 
 function serialise(value: unknown): string {
