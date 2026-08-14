@@ -1,11 +1,11 @@
 import { MAX_PASSWORD_LENGTH } from "@dukkanify/contracts";
+import { AlertCircle } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Mashrabiya } from "@/components/mashrabiya";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signInWithPassword } from "@/features/auth/actions";
+import { AuthLayout } from "@/features/auth/auth-layout";
 import { GoogleSignIn } from "@/features/auth/google-sign-in";
 
 export const metadata: Metadata = { title: "Sign in" };
@@ -59,35 +59,29 @@ export default async function LoginPage({
     error === undefined ? null : (FAILURE_MESSAGE[error] ?? FALLBACK_MESSAGE);
 
   return (
-    <main className="relative isolate flex min-h-dvh flex-col items-center justify-center px-6 py-16">
-      <div
-        className="text-accent pointer-events-none absolute inset-0 -z-10 opacity-20 [mask-image:radial-gradient(60%_50%_at_50%_0%,black,transparent)]"
-        aria-hidden="true"
-      >
-        <Mashrabiya patternId="mashrabiya-login" className="h-full w-full" />
-      </div>
-
-      <div className="w-full max-w-sm">
-        <Link
-          href="/"
-          className="font-heading text-lg font-semibold tracking-tight"
-        >
-          Dukkanify
-        </Link>
-
-        <h1 className="mt-8 text-3xl font-semibold tracking-tight">
-          Sign in to build your shop
-        </h1>
-        <p className="text-muted-foreground mt-3">
-          Your stores are saved to your account, so you can come back and edit
-          them.
-        </p>
-
-        {failure !== null && (
-          <div
-            role="alert"
-            className="border-destructive/40 bg-destructive/10 text-destructive mt-8 rounded-lg border px-4 py-3 text-sm"
+    <AuthLayout
+      title="Welcome back"
+      lede="Your stores are saved to your account, so you can come back and edit them."
+      footer={
+        <>
+          New here?{" "}
+          <Link
+            href="/signup"
+            className="text-emerald font-medium underline underline-offset-4"
           >
+            Create an account
+          </Link>
+          .
+        </>
+      }
+    >
+      {failure !== null && (
+        <div
+          role="alert"
+          className="border-destructive/40 bg-destructive/8 text-destructive mt-8 flex items-start gap-2.5 rounded-xl border px-4 py-3 text-sm"
+        >
+          <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+          <div>
             <p>{failure}</p>
             {/* Standing copy, shown for any refusal and keyed on nothing about the address
                 typed: it explains the one case a generic message cannot — an account whose
@@ -101,51 +95,45 @@ export default async function LoginPage({
               </p>
             )}
           </div>
-        )}
+        </div>
+      )}
 
-        <form action={signInWithPassword} className="mt-8 space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              maxLength={254}
-              className="h-11"
-            />
-          </div>
+      <form action={signInWithPassword} className="mt-8 space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            maxLength={254}
+            className="h-12 rounded-lg"
+          />
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              maxLength={MAX_PASSWORD_LENGTH}
-              className="h-11"
-            />
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="password">Password</Label>
+          <Input
+            id="password"
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            required
+            maxLength={MAX_PASSWORD_LENGTH}
+            className="h-12 rounded-lg"
+          />
+        </div>
 
-          <Button type="submit" size="lg" className="w-full">
-            Sign in
-          </Button>
-        </form>
+        <button
+          type="submit"
+          className="bg-emerald text-ivory hover:bg-emerald-deep focus-visible:ring-ring shadow-soft w-full rounded-xl px-6 py-3.5 text-base font-medium transition-all duration-300 hover:shadow-lifted focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+        >
+          Sign in
+        </button>
+      </form>
 
-        <GoogleSignIn />
-
-        <p className="text-muted-foreground mt-6 text-sm">
-          New here?{" "}
-          <Link href="/signup" className="text-foreground underline">
-            Create an account
-          </Link>
-          . We use your Google account only to identify you — Dukkanify never
-          posts anything on your behalf.
-        </p>
-      </div>
-    </main>
+      <GoogleSignIn />
+    </AuthLayout>
   );
 }

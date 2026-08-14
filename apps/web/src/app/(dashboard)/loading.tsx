@@ -2,34 +2,50 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 /**
  * The dashboard's own loading state, shaped like the dashboard rather than like a page in
- * general: a greeting, the action beside it, and a grid of store cards. The root
- * `loading.tsx` would show three feature-sized boxes here, which is a different page
- * appearing for a moment.
+ * general: the greeting panel, three figures, then a grid of store cards with their covers.
+ * A generic three-box skeleton here would be a different page appearing for a moment, which
+ * is worse than a slower one appearing correctly.
  */
 export default function DashboardLoading() {
   return (
     <div
-      className="mx-auto max-w-6xl px-6 py-12 sm:px-8 sm:py-16"
+      className="mx-auto w-full max-w-[1280px] px-5 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-12"
       role="status"
       aria-label="Loading your stores"
     >
-      <div className="flex flex-wrap items-end justify-between gap-6">
-        <div>
-          <Skeleton className="h-10 w-64" />
-          <Skeleton className="mt-4 h-5 w-40" />
-        </div>
-        <Skeleton className="h-11 w-36" />
+      <Skeleton className="h-56 w-full rounded-3xl sm:h-64" />
+
+      <div className="mt-8 grid gap-4 sm:grid-cols-3">
+        {[0, 1, 2].map((card) => (
+          <div key={card} className="border-line rounded-2xl border p-5">
+            <div className="flex items-center gap-3">
+              <Skeleton className="size-9 rounded-xl" />
+              <Skeleton className="h-8 w-10" />
+            </div>
+            <Skeleton className="mt-4 h-4 w-20" />
+            <Skeleton className="mt-2 h-4 w-32" />
+          </div>
+        ))}
       </div>
 
-      <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <Skeleton className="mt-12 h-9 w-44" />
+
+      <div className="mt-6 grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
         {[0, 1, 2].map((card) => (
-          <div key={card} className="border-border/60 rounded-xl border p-6">
-            <div className="flex items-start justify-between gap-3">
-              <Skeleton className="h-6 w-32" />
-              <Skeleton className="h-5 w-16 rounded-full" />
+          <div
+            key={card}
+            className="border-line overflow-hidden rounded-2xl border"
+          >
+            <Skeleton className="aspect-[16/10] w-full rounded-none" />
+            <div className="p-5">
+              <Skeleton className="h-6 w-40" />
+              <Skeleton className="mt-2.5 h-4 w-full" />
+              <Skeleton className="mt-5 h-3 w-44" />
+              <div className="border-line mt-5 flex gap-2 border-t pt-4">
+                <Skeleton className="h-8 w-20 rounded-lg" />
+                <Skeleton className="h-8 w-20 rounded-lg" />
+              </div>
             </div>
-            <Skeleton className="mt-3 h-4 w-full" />
-            <Skeleton className="mt-6 h-3 w-40" />
           </div>
         ))}
       </div>

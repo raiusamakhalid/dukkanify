@@ -3,6 +3,8 @@ import type {
   ProductGridContent,
   StoreDto,
 } from "@dukkanify/contracts";
+import Image from "next/image";
+import { imageryFor } from "@/lib/imagery";
 import { SectionHeading } from "./section-heading";
 
 /**
@@ -42,16 +44,16 @@ export function ProductGridSection({
       className="px-6 sm:px-10"
       style={{ paddingBlock: "var(--brand-space)" }}
     >
-      <div className="mx-auto max-w-5xl">
+      <div className="mx-auto max-w-6xl">
         <SectionHeading
           heading={content.heading}
           subheading={content.subheading}
         />
 
-        <ul className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <ul className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {products.map((product) => (
             <li key={product.id}>
-              <ProductCard product={product} />
+              <ProductCard product={product} store={store} />
             </li>
           ))}
         </ul>
@@ -60,17 +62,23 @@ export function ProductGridSection({
   );
 }
 
-function ProductCard({ product }: { product: ProductDto }) {
+function ProductCard({
+  product,
+  store,
+}: {
+  product: ProductDto;
+  store: StoreDto;
+}) {
   return (
     <article
-      className="flex h-full flex-col overflow-hidden"
+      className="group/product flex h-full flex-col overflow-hidden transition-transform duration-500 hover:-translate-y-1"
       style={{
         border:
-          "1px solid color-mix(in srgb, var(--brand-muted) 30%, transparent)",
+          "1px solid color-mix(in srgb, var(--brand-muted) 25%, transparent)",
         borderRadius: "var(--brand-radius)",
       }}
     >
-      <ProductImage product={product} />
+      <ProductImage product={product} store={store} />
 
       <div className="flex flex-1 flex-col p-4">
         <h3
@@ -84,7 +92,7 @@ function ProductCard({ product }: { product: ProductDto }) {
         </h3>
 
         <p
-          className="mt-2 line-clamp-3 flex-1 text-sm"
+          className="mt-2 line-clamp-3 flex-1 text-sm leading-relaxed"
           style={{
             fontFamily: "var(--brand-font-body)",
             color: "var(--brand-muted)",
@@ -94,7 +102,7 @@ function ProductCard({ product }: { product: ProductDto }) {
         </p>
 
         <p
-          className="mt-4 text-sm font-medium"
+          className="mt-4 text-sm font-semibold"
           style={{
             fontFamily: "var(--brand-font-body)",
             color: "var(--brand-primary)",
@@ -108,13 +116,26 @@ function ProductCard({ product }: { product: ProductDto }) {
 }
 
 /**
- * No product photography exists — nothing generates it, and `imageUrl` is null on every
- * product this app has ever saved (architecture.md §14). A broken image or a stock photo of
- * someone else's shop would both be worse than admitting it: this draws a tile from the
- * store's own palette, angled by the SKU so no two products in a row look identical, with
- * the product's initials set in the display face.
+ * The tile above a product.
+ *
+ * Three cases, in order of how true they are. A product that carries its own `imageUrl` is
+ * rendered with it. Otherwise the product's own words — its name, its description and the
+ * sentence the shop was generated from — are matched against the verified library in
+ * `lib/imagery.ts`, so an oud gets oud and a bracelet gets a bracelet; the SKU decides which
+ * of that subject's photographs, so a grid of eight is not eight copies of one bottle.
+ *
+ * And when the words match nothing, the original fallback still stands: a tile drawn from
+ * the store's own palette, angled by the SKU. Nothing generates product photography
+ * (architecture.md §14), and a shop selling something this library has never heard of is
+ * better served by an honest gradient than by a stock photograph of a different trade.
  */
-function ProductImage({ product }: { product: ProductDto }) {
+function ProductImage({
+  product,
+  store,
+}: {
+  product: ProductDto;
+  store: StoreDto;
+}) {
   if (product.imageUrl !== null) {
     return (
       // A generated store's image could be on any host, and `next/image` would need every
@@ -128,12 +149,31 @@ function ProductImage({ product }: { product: ProductDto }) {
     );
   }
 
+  const image = imageryFor(
+    `${product.name} ${product.description} ${store.prompt}`,
+    product.sku,
+  );
+
+  if (image !== null) {
+    return (
+      <div className="relative aspect-square w-full overflow-hidden">
+        <Image
+          src={image.src}
+          alt={image.alt}
+          fill
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 45vw, 280px"
+          className="object-cover transition-transform duration-700 group-hover/product:scale-105"
+        />
+      </div>
+    );
+  }
+
   return (
     <div
       className="flex aspect-square w-full items-center justify-center"
       aria-hidden="true"
       style={{
-        background: `linear-gradient(${angleFor(product.sku)}deg, color-mix(in srgb, var(--brand-accent) 35%, var(--brand-bg)), color-mix(in srgb, var(--brand-primary) 20%, var(--brand-bg)))`,
+        background: `linear-gradient(${String(angleFor(product.sku))}deg, color-mix(in srgb, var(--brand-accent) 35%, var(--brand-bg)), color-mix(in srgb, var(--brand-primary) 20%, var(--brand-bg)))`,
       }}
     >
       <span

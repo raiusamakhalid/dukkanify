@@ -17,8 +17,9 @@
   properties from `themeToCssVariables` and changes with every store. Nothing in here may
   reference those, and no storefront section may reference the tokens below.
 
-  Colours: desert sand for ground, deep oud brown for ink and weight, gold leaf for the one
-  thing on the screen that should be looked at. Deliberately not SaaS indigo.
+  Colours: deep emerald for weight and ground, gold leaf for the one thing on the screen
+  that should be looked at, desert sand and ivory for the paper it all sits on. Deliberately
+  not SaaS indigo.
 */
 
 @theme inline {
@@ -41,6 +42,16 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
+  /* The named brand, addressable directly where a semantic token would be a lie — the gold
+     hairline on a dark CTA is not a "border", it is gold. */
+  --color-emerald: var(--emerald);
+  --color-emerald-deep: var(--emerald-deep);
+  --color-gold: var(--gold);
+  --color-sand: var(--sand);
+  --color-ivory: var(--ivory);
+  --color-ink: var(--ink);
+  --color-line: var(--line);
+
   /* Loaded by `lib/fonts.ts`; both display faces carry Arabic, which is why they were chosen. */
   --font-sans:
     var(--font-ibm-plex-sans-arabic), ui-sans-serif, system-ui, sans-serif;
@@ -53,65 +64,148 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /*
+    Three elevations and no more. Every shadow is emerald-tinted rather than black, because
+    a neutral drop shadow on a warm ivory ground reads as grey dirt under the card.
+  */
+  --shadow-soft: 0 1px 2px rgba(7, 63, 53, 0.04), 0 8px 24px rgba(7, 63, 53, 0.05);
+  --shadow-lifted:
+    0 2px 4px rgba(7, 63, 53, 0.04), 0 20px 60px rgba(7, 63, 53, 0.08);
+  --shadow-floating:
+    0 4px 8px rgba(7, 63, 53, 0.05), 0 40px 100px rgba(7, 63, 53, 0.14);
+
+  --animate-float: float 7s ease-in-out infinite;
+  --animate-shimmer: shimmer 2.2s linear infinite;
+  --animate-marquee: marquee 42s linear infinite;
+  --animate-caret: caret 1.05s step-end infinite;
+  --animate-halo: halo 9s ease-in-out infinite;
+  --animate-draw: draw 1.4s ease-out forwards;
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  @keyframes shimmer {
+    from {
+      background-position: 200% 0;
+    }
+    to {
+      background-position: -200% 0;
+    }
+  }
+
+  /* Translates by half the track, so a track rendered twice loops without a seam. */
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  @keyframes caret {
+    50% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes halo {
+    0%,
+    100% {
+      opacity: 0.5;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.85;
+      transform: scale(1.08);
+    }
+  }
+
+  @keyframes draw {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
 }
 
 :root {
-  --background: #fbf7f0;
-  --foreground: #241a12;
-  --card: #fffcf6;
-  --card-foreground: #241a12;
-  --popover: #fffcf6;
-  --popover-foreground: #241a12;
-  --primary: #3b2418;
-  --primary-foreground: #fbf7f0;
-  --secondary: #efe3d0;
-  --secondary-foreground: #3b2418;
-  --muted: #ebdfcb;
-  --muted-foreground: #6b5a45;
-  --accent: #c8a24a;
-  --accent-foreground: #241a12;
+  --emerald: #0b5d4b;
+  --emerald-deep: #073f35;
+  --gold: #c8a45d;
+  --sand: #e8d5b5;
+  --ivory: #faf8f3;
+  --ink: #17211f;
+  --line: #e5e0d6;
+
+  --background: #faf8f3;
+  --foreground: #17211f;
+  --card: #ffffff;
+  --card-foreground: #17211f;
+  --popover: #ffffff;
+  --popover-foreground: #17211f;
+  --primary: #0b5d4b;
+  --primary-foreground: #faf8f3;
+  /* A sand *tint*, not the sand itself: full #E8D5B5 behind a paragraph of text is a
+     highlighter, and secondary surfaces carry paragraphs. */
+  --secondary: #f2ece0;
+  --secondary-foreground: #073f35;
+  --muted: #f1eee7;
+  --muted-foreground: #66736f;
+  --accent: #c8a45d;
+  --accent-foreground: #17211f;
   /* Terracotta rather than a generic alert red: it belongs to this palette and still reads
-     as a warning at 4.5:1 on sand. */
+     as a warning at 4.5:1 on ivory. */
   --destructive: #9b3a2c;
   /*
     Two edges, two jobs, two contrast budgets.
 
     `--border` draws hairlines that only separate content — a divider nobody has to see to
-    use the page, kept quiet at 1.4:1 so a page of cards does not read as a grid of boxes.
-    `--input` draws the edge of anything a person can act on: a field, an outline button.
-    That one carries information, so it meets the 3:1 WCAG 1.4.11 asks for (3.2:1 on sand,
-    3.4:1 on card). Using the quiet token on a control is what made the landing page's
-    secondary call to action look like plain text.
+    use the page, kept quiet so a page of cards does not read as a grid of boxes. `--input`
+    draws the edge of anything a person can act on: a field, an outline button. That one
+    carries information, so it meets the 3:1 WCAG 1.4.11 asks for (3.9:1 on ivory, 4.1:1 on
+    white). Using the quiet token on a control is what made the old landing page's secondary
+    call to action look like plain text.
   */
-  --border: #e1d3bc;
-  --input: #a3865e;
-  /* Focus is gold — the one place the accent is not decorative. */
-  --ring: #c8a24a;
+  --border: #e5e0d6;
+  --input: #6e827b;
+  /* Focus is emerald, not gold: gold on ivory is 1.9:1 and a focus ring nobody can see is
+     not a focus ring. */
+  --ring: #0b5d4b;
   --radius: 0.75rem;
 }
 
 .dark {
-  --background: #17100a;
-  --foreground: #f3e9d8;
-  --card: #211710;
-  --card-foreground: #f3e9d8;
-  --popover: #211710;
-  --popover-foreground: #f3e9d8;
-  /* The roles swap in the dark: brown is the ground, so gold has to carry the emphasis
-     that deep brown carries in the light. */
-  --primary: #d9b565;
-  --primary-foreground: #1b120b;
-  --secondary: #2e2118;
-  --secondary-foreground: #f3e9d8;
-  --muted: #2e2118;
-  --muted-foreground: #b49e80;
-  --accent: #c8a24a;
-  --accent-foreground: #1b120b;
-  --destructive: #c4614e;
-  --border: #3a2a1d;
-  /* Same split as the light theme: 3.4:1 on the night ground, 3.2:1 on a card. */
-  --input: #856c52;
-  --ring: #c8a24a;
+  --emerald: #12806a;
+  --emerald-deep: #0b5d4b;
+  --line: #1b453b;
+  --background: #08211c;
+  --foreground: #eef4f1;
+  --card: #0d2a24;
+  --card-foreground: #eef4f1;
+  --popover: #0d2a24;
+  --popover-foreground: #eef4f1;
+  /* The roles swap in the dark: emerald is the ground, so gold has to carry the emphasis
+     that deep emerald carries in the light. */
+  --primary: #c8a45d;
+  --primary-foreground: #08211c;
+  --secondary: #123830;
+  --secondary-foreground: #eef4f1;
+  --muted: #123830;
+  --muted-foreground: #9bb0a9;
+  --accent: #c8a45d;
+  --accent-foreground: #08211c;
+  --destructive: #cc6c5a;
+  --border: #1b453b;
+  --input: #6b8b81;
+  --ring: #c8a45d;
 }
 
 @layer base {
@@ -124,6 +218,9 @@
     /* Arabic ascenders and descenders are taller than Latin ones; the default line-height
        crowds them. Set once here rather than per component. */
     line-height: 1.65;
+    scroll-behavior: smooth;
+    /* Every in-page anchor lands under a sticky navbar otherwise. */
+    scroll-padding-top: 6rem;
   }
 
   body {
@@ -135,8 +232,9 @@
   h2,
   h3 {
     @apply font-heading;
-    line-height: 1.2;
+    line-height: 1.1;
     text-wrap: balance;
+    letter-spacing: -0.015em;
   }
 
   /*
@@ -148,9 +246,124 @@
   :lang(ar) h2,
   :lang(ar) h3 {
     @apply font-sans;
+    letter-spacing: normal;
   }
 
   p {
     text-wrap: pretty;
+  }
+}
+
+@layer utilities {
+  /*
+    The page's own atmosphere: an emerald wash from the top-left, a gold one from the right,
+    both stopping well short of tinted. Written as one utility rather than four stacked
+    gradient classes, because the four would be copied into every section and drift.
+  */
+  .bg-aurora {
+    background-image:
+      radial-gradient(
+        60rem 40rem at 12% -10%,
+        color-mix(in srgb, var(--emerald) 12%, transparent),
+        transparent 70%
+      ),
+      radial-gradient(
+        45rem 35rem at 92% 8%,
+        color-mix(in srgb, var(--gold) 16%, transparent),
+        transparent 70%
+      ),
+      radial-gradient(
+        40rem 30rem at 50% 100%,
+        color-mix(in srgb, var(--sand) 30%, transparent),
+        transparent 70%
+      );
+  }
+
+  .bg-aurora-dark {
+    background-image:
+      radial-gradient(
+        55rem 40rem at 10% 0%,
+        color-mix(in srgb, var(--gold) 14%, transparent),
+        transparent 65%
+      ),
+      radial-gradient(
+        50rem 40rem at 95% 100%,
+        color-mix(in srgb, #14806a 45%, transparent),
+        transparent 65%
+      );
+  }
+
+  /* Ink that fades into emerald — used once per page at most, on the lead word of a hero. */
+  .text-gradient-emerald {
+    background-image: linear-gradient(
+      100deg,
+      var(--emerald-deep),
+      var(--emerald) 45%,
+      color-mix(in srgb, var(--gold) 70%, var(--emerald))
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* The skeleton sweep. `--muted` is the ground; the highlight is a lighter band moving
+     across it, which reads as loading in a way a pulsing box does not. */
+  .shimmer {
+    background-image: linear-gradient(
+      90deg,
+      var(--muted) 0%,
+      color-mix(in srgb, var(--card) 85%, var(--muted)) 50%,
+      var(--muted) 100%
+    );
+    background-size: 200% 100%;
+    animation: var(--animate-shimmer);
+  }
+
+  /* For the snap-scrolling rails on small screens: the bar is a second horizontal line
+     under content that already says it scrolls by being cut off at the edge. */
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* A one-pixel gold rule that fades out at both ends. */
+  .rule-gold {
+    background-image: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in srgb, var(--gold) 70%, transparent) 20%,
+      color-mix(in srgb, var(--gold) 70%, transparent) 80%,
+      transparent
+    );
+  }
+
+  /* Wraps a card in a moving gold-into-emerald edge. Applied to the one primary action on
+     a screen, never to a group of them. */
+  .ring-gilded {
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--gold) 55%, transparent),
+      0 0 0 4px color-mix(in srgb, var(--gold) 12%, transparent);
+  }
+}
+
+/*
+  Everything above animates for the sake of the story the page is telling. Nobody who has
+  asked their operating system to stop moving things should have to watch it.
+*/
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

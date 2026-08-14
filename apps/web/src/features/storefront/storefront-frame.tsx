@@ -75,14 +75,14 @@ export function StorefrontFrame({
 function StorefrontHeader({ store }: { store: StoreDto }) {
   return (
     <header
-      className="flex flex-wrap items-center justify-between gap-4 px-6 py-5 sm:px-10"
+      className="flex flex-wrap items-center justify-between gap-4 px-6 py-5 sm:px-10 sm:py-6"
       style={{
         borderBottom:
-          "1px solid color-mix(in srgb, var(--brand-muted) 25%, transparent)",
+          "1px solid color-mix(in srgb, var(--brand-muted) 22%, transparent)",
       }}
     >
       <span
-        className="text-lg font-semibold tracking-tight"
+        className="text-xl font-semibold tracking-tight"
         style={{
           fontFamily: "var(--brand-font-display)",
           color: "var(--brand-fg)",
@@ -91,38 +91,99 @@ function StorefrontHeader({ store }: { store: StoreDto }) {
         {store.name}
       </span>
 
-      <nav
-        aria-label={`${store.name} pages`}
-        className="flex flex-wrap items-center gap-5 text-sm"
-        style={{ fontFamily: "var(--brand-font-body)" }}
-      >
-        {store.pages.map((page) => (
-          <a
-            key={page.id}
-            href={`#${page.slug}`}
-            className="underline-offset-4 hover:underline"
-            style={{ color: "var(--brand-muted)" }}
-          >
-            {page.title}
-          </a>
-        ))}
-      </nav>
+      <div className="flex flex-wrap items-center gap-5">
+        <nav
+          aria-label={`${store.name} pages`}
+          className="flex flex-wrap items-center gap-5 text-sm"
+          style={{ fontFamily: "var(--brand-font-body)" }}
+        >
+          {store.pages.map((page) => (
+            <a
+              key={page.id}
+              href={`#${page.slug}`}
+              className="underline-offset-4 transition-opacity hover:underline hover:opacity-80"
+              style={{ color: "var(--brand-muted)" }}
+            >
+              {page.title}
+            </a>
+          ))}
+        </nav>
+
+        <a
+          href="#products"
+          className="px-4 py-2 text-xs font-medium transition-opacity hover:opacity-90"
+          style={{
+            background: "var(--brand-primary)",
+            color: "var(--brand-bg)",
+            borderRadius: "var(--brand-radius)",
+            fontFamily: "var(--brand-font-body)",
+          }}
+        >
+          {store.locale === "ar" ? "تسوّق الآن" : "Shop now"}
+        </a>
+      </div>
     </header>
   );
 }
 
+/**
+ * The footer, carrying the shop's own line about itself.
+ *
+ * The tagline is repeated here rather than something being invented for the space: it is the
+ * one sentence the generator already wrote about what this shop is, and a footer with a
+ * fabricated slogan in it is a footer that contradicts the hero.
+ */
 function StorefrontFooter({ store }: { store: StoreDto }) {
   return (
     <footer
-      className="px-6 py-10 text-center text-sm sm:px-10"
+      className="px-6 py-12 sm:px-10"
       style={{
         borderTop:
-          "1px solid color-mix(in srgb, var(--brand-muted) 25%, transparent)",
-        color: "var(--brand-muted)",
+          "1px solid color-mix(in srgb, var(--brand-muted) 22%, transparent)",
         fontFamily: "var(--brand-font-body)",
       }}
     >
-      © {new Date().getFullYear()} {store.name}
+      <div className="mx-auto flex max-w-6xl flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+        <div className="max-w-md">
+          <p
+            className="text-lg font-semibold"
+            style={{
+              fontFamily: "var(--brand-font-display)",
+              color: "var(--brand-fg)",
+            }}
+          >
+            {store.name}
+          </p>
+          {store.tagline !== null && (
+            <p className="mt-2 text-sm" style={{ color: "var(--brand-muted)" }}>
+              {store.tagline}
+            </p>
+          )}
+        </div>
+
+        <nav
+          aria-label={`${store.name} pages`}
+          className="flex flex-wrap gap-5 text-sm"
+        >
+          {store.pages.map((page) => (
+            <a
+              key={page.id}
+              href={`#${page.slug}`}
+              className="underline-offset-4 hover:underline"
+              style={{ color: "var(--brand-muted)" }}
+            >
+              {page.title}
+            </a>
+          ))}
+        </nav>
+      </div>
+
+      <p
+        className="mx-auto mt-8 max-w-6xl text-xs"
+        style={{ color: "var(--brand-muted)" }}
+      >
+        © {new Date().getFullYear()} {store.name}
+      </p>
     </footer>
   );
 }

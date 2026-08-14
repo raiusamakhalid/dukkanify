@@ -1,6 +1,7 @@
 "use client";
 
 import type { SectionDto, StoreDto } from "@dukkanify/contracts";
+import { Pencil } from "lucide-react";
 import { SectionRenderer } from "@/features/storefront/section-renderer";
 import { StorefrontFrame } from "@/features/storefront/storefront-frame";
 import { cn } from "@/lib/utils";
@@ -9,6 +10,7 @@ import {
   useIsDirty,
   useSectionContent,
 } from "./builder-store";
+import { SECTION_META } from "./section-meta";
 
 /**
  * The shop as the owner sees it while editing: the same frame, the same section components,
@@ -19,6 +21,11 @@ import {
  * storefront run inside this client component. That is the "one set of components, two
  * contexts" claim in architecture.md §5, and it is why an edit cannot make the builder and
  * the live shop disagree about how a section looks.
+ *
+ * The selection chrome is drawn in the *product's* emerald rather than in the shop's own
+ * `--brand-primary`, which is a deliberate reversal of the first version. Tooling painted in
+ * the storefront's palette is tooling that disappears into the storefront — and on a dark
+ * bukhoor theme, an outline in the shop's primary was invisible against its own background.
  */
 export function EditableStorefront({ store }: { store: StoreDto }) {
   return (
@@ -52,21 +59,28 @@ function SelectableSection({
   );
   const select = useBuilderStore((state) => state.select);
 
+  const meta = SECTION_META[section.type];
+
   return (
     <div
-      className={cn(
-        "relative transition-shadow",
-        selected && "ring-2 ring-inset",
-      )}
-      style={
-        selected
-          ? { boxShadow: "inset 0 0 0 2px var(--brand-primary)" }
-          : undefined
-      }
+      className="group/section relative"
       onClick={() => {
         select(section.id);
       }}
     >
+      {/* A ring drawn on a sibling rather than on the section itself: a `ring` on the
+          content box would be clipped by the section's own overflow, and an inset shadow
+          would sit under the storefront's backgrounds. */}
+      <span
+        aria-hidden="true"
+        className={cn(
+          "pointer-events-none absolute inset-0 z-10 rounded-sm transition-all duration-200",
+          selected
+            ? "ring-emerald ring-2 ring-inset"
+            : "ring-emerald/0 group-hover/section:ring-emerald/40 ring-2 ring-inset",
+        )}
+      />
+
       {/*
         The accessible way in. Clicking the section itself is a convenience for a mouse; this
         button is what a keyboard reaches, and it says which section it selects rather than
@@ -79,22 +93,24 @@ function SelectableSection({
           select(section.id);
         }}
         aria-pressed={selected}
-        className="focus-visible:ring-ring absolute end-3 top-3 z-10 rounded-full px-3 py-1 text-xs font-medium opacity-0 transition-opacity focus-visible:ring-2 focus-visible:opacity-100 group-hover/canvas:opacity-100 hover:opacity-100"
-        style={{
-          background: "var(--brand-primary)",
-          color: "var(--brand-bg)",
-        }}
+        className={cn(
+          "bg-emerald text-ivory focus-visible:ring-emerald/40 absolute end-3 top-3 z-20 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium shadow-lifted transition-opacity focus-visible:ring-4 focus-visible:outline-none",
+          selected
+            ? "opacity-100"
+            : "opacity-0 group-hover/section:opacity-100 focus-visible:opacity-100",
+        )}
       >
-        Edit {labelFor(section)}
-        {dirty && <span aria-label=", unsaved"> •</span>}
+        <Pencil className="size-3" aria-hidden="true" />
+        Edit {meta.label.toLowerCase()}
+        {dirty && (
+          <span
+            className="bg-gold size-1.5 rounded-full"
+            aria-label=", unsaved"
+          />
+        )}
       </button>
 
       <SectionRenderer section={{ ...section, content }} store={store} />
     </div>
   );
-}
-
-/** "Edit hero" reads better than "Edit HERO", and better than a section id. */
-function labelFor(section: SectionDto): string {
-  return section.type.toLowerCase().replace(/_/g, " ");
 }

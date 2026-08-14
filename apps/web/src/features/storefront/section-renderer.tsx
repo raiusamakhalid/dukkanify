@@ -32,7 +32,7 @@ export function SectionRenderer({
 
   switch (content.type) {
     case "HERO":
-      return <HeroSection content={content} />;
+      return <HeroSection content={content} store={store} />;
     case "CATEGORY_GRID":
       return <CategoryGridSection content={content} store={store} />;
     case "PRODUCT_GRID":

@@ -1,4 +1,10 @@
-import type { CategoryGridContent, StoreDto } from "@dukkanify/contracts";
+import type {
+  CategoryDto,
+  CategoryGridContent,
+  StoreDto,
+} from "@dukkanify/contracts";
+import Image from "next/image";
+import { imageryFor } from "@/lib/imagery";
 import { SectionHeading } from "./section-heading";
 
 /**
@@ -32,36 +38,100 @@ export function CategoryGridSection({
       className="px-6 sm:px-10"
       style={{ paddingBlock: "var(--brand-space)" }}
     >
-      <div className="mx-auto max-w-5xl">
+      <div className="mx-auto max-w-6xl">
         <SectionHeading
           heading={content.heading}
           subheading={content.subheading}
         />
 
-        <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {featured.map((category) => (
             <li key={category.id}>
-              <a
+              <CategoryTile
+                category={category}
+                store={store}
                 href={
                   narrowedGrids.has(category.slug)
                     ? `#products-${category.slug}`
                     : "#products"
                 }
-                className="block h-full px-6 py-8 text-center transition-opacity hover:opacity-80"
-                style={{
-                  border: "1px solid var(--brand-accent)",
-                  borderRadius: "var(--brand-radius)",
-                  color: "var(--brand-fg)",
-                  fontFamily: "var(--brand-font-display)",
-                }}
-              >
-                {category.name}
-              </a>
+              />
             </li>
           ))}
         </ul>
       </div>
     </section>
+  );
+}
+
+/**
+ * A department, as a picture with its name over it.
+ *
+ * The photograph comes from the category's own name against `lib/imagery.ts` — so "Oud &
+ * Attar" gets oud — and falls back to a palette tile when nothing matches, which is the same
+ * rule the product grid follows. The overlay is mixed from `--brand-fg` rather than being a
+ * fixed black, so the name stays readable on a shop whose background is nearly white and on
+ * one whose background is nearly black.
+ */
+function CategoryTile({
+  category,
+  store,
+  href,
+}: {
+  category: CategoryDto;
+  store: StoreDto;
+  href: string;
+}) {
+  const image = imageryFor(`${category.name} ${store.prompt}`, category.slug);
+
+  return (
+    <a
+      href={href}
+      className="group/category relative block aspect-[4/3] overflow-hidden transition-transform duration-500 hover:-translate-y-1"
+      style={{
+        borderRadius: "var(--brand-radius)",
+        border:
+          "1px solid color-mix(in srgb, var(--brand-accent) 45%, transparent)",
+      }}
+    >
+      {image === null ? (
+        <span
+          aria-hidden="true"
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(135deg, color-mix(in srgb, var(--brand-accent) 30%, var(--brand-bg)), color-mix(in srgb, var(--brand-primary) 18%, var(--brand-bg)))",
+          }}
+        />
+      ) : (
+        <Image
+          src={image.src}
+          alt=""
+          fill
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 45vw, 380px"
+          className="object-cover transition-transform duration-700 group-hover/category:scale-105"
+        />
+      )}
+
+      <span
+        aria-hidden="true"
+        className="absolute inset-0"
+        style={{
+          background:
+            "linear-gradient(to top, color-mix(in srgb, var(--brand-fg) 70%, transparent), transparent 65%)",
+        }}
+      />
+
+      <span
+        className="absolute inset-x-5 bottom-4 text-lg font-semibold"
+        style={{
+          fontFamily: "var(--brand-font-display)",
+          color: "var(--brand-bg)",
+        }}
+      >
+        {category.name}
+      </span>
+    </a>
   );
 }
 

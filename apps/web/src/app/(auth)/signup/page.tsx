@@ -1,11 +1,11 @@
 import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from "@dukkanify/contracts";
+import { AlertCircle } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Mashrabiya } from "@/components/mashrabiya";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signUpWithPassword } from "@/features/auth/actions";
+import { AuthLayout } from "@/features/auth/auth-layout";
 import { GoogleSignIn } from "@/features/auth/google-sign-in";
 
 export const metadata: Metadata = { title: "Create an account" };
@@ -47,101 +47,88 @@ export default async function SignUpPage({
     error === undefined ? null : (FAILURE_MESSAGE[error] ?? FALLBACK_MESSAGE);
 
   return (
-    <main className="relative isolate flex min-h-dvh flex-col items-center justify-center px-6 py-16">
-      <div
-        className="text-accent pointer-events-none absolute inset-0 -z-10 opacity-20 [mask-image:radial-gradient(60%_50%_at_50%_0%,black,transparent)]"
-        aria-hidden="true"
-      >
-        <Mashrabiya patternId="mashrabiya-signup" className="h-full w-full" />
-      </div>
-
-      <div className="w-full max-w-sm">
-        <Link
-          href="/"
-          className="font-heading text-lg font-semibold tracking-tight"
-        >
-          Dukkanify
-        </Link>
-
-        <h1 className="mt-8 text-3xl font-semibold tracking-tight">
-          Create your account
-        </h1>
-        <p className="text-muted-foreground mt-3">
-          Then describe a shop, and Dukkanify builds it — theme, catalogue and
-          pages — saved to this account.
-        </p>
-
-        {failure !== null && (
-          <p
-            role="alert"
-            className="border-destructive/40 bg-destructive/10 text-destructive mt-8 rounded-lg border px-4 py-3 text-sm"
-          >
-            {failure}
-          </p>
-        )}
-
-        <form action={signUpWithPassword} className="mt-8 space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">Name</Label>
-            <Input
-              id="name"
-              name="name"
-              type="text"
-              autoComplete="name"
-              required
-              maxLength={80}
-              className="h-11"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              maxLength={254}
-              className="h-11"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="new-password"
-              required
-              minLength={MIN_PASSWORD_LENGTH}
-              maxLength={MAX_PASSWORD_LENGTH}
-              aria-describedby="password-rule"
-              className="h-11"
-            />
-            {/* Stated rather than discovered by submitting, because a rejected form comes
-                back empty and retyping three fields to learn the rule is a poor trade. */}
-            <p id="password-rule" className="text-muted-foreground text-xs">
-              At least {MIN_PASSWORD_LENGTH} characters.
-            </p>
-          </div>
-
-          <Button type="submit" size="lg" className="w-full">
-            Create account
-          </Button>
-        </form>
-
-        <GoogleSignIn />
-
-        <p className="text-muted-foreground mt-6 text-sm">
+    <AuthLayout
+      title="Create your account"
+      lede="Then describe a shop, and Dukkanify builds it — theme, catalogue and pages — saved to this account."
+      footer={
+        <>
           Already have an account?{" "}
-          <Link href="/login" className="text-foreground underline">
+          <Link
+            href="/login"
+            className="text-emerald font-medium underline underline-offset-4"
+          >
             Sign in
           </Link>
           .
+        </>
+      }
+    >
+      {failure !== null && (
+        <p
+          role="alert"
+          className="border-destructive/40 bg-destructive/8 text-destructive mt-8 flex items-start gap-2.5 rounded-xl border px-4 py-3 text-sm"
+        >
+          <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+          {failure}
         </p>
-      </div>
-    </main>
+      )}
+
+      <form action={signUpWithPassword} className="mt-8 space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="name">Name</Label>
+          <Input
+            id="name"
+            name="name"
+            type="text"
+            autoComplete="name"
+            required
+            maxLength={80}
+            className="h-12 rounded-lg"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            maxLength={254}
+            className="h-12 rounded-lg"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="password">Password</Label>
+          <Input
+            id="password"
+            name="password"
+            type="password"
+            autoComplete="new-password"
+            required
+            minLength={MIN_PASSWORD_LENGTH}
+            maxLength={MAX_PASSWORD_LENGTH}
+            aria-describedby="password-rule"
+            className="h-12 rounded-lg"
+          />
+          {/* Stated rather than discovered by submitting, because a rejected form comes
+              back empty and retyping three fields to learn the rule is a poor trade. */}
+          <p id="password-rule" className="text-muted-foreground text-xs">
+            At least {MIN_PASSWORD_LENGTH} characters.
+          </p>
+        </div>
+
+        <button
+          type="submit"
+          className="bg-emerald text-ivory hover:bg-emerald-deep focus-visible:ring-ring shadow-soft w-full rounded-xl px-6 py-3.5 text-base font-medium transition-all duration-300 hover:shadow-lifted focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+        >
+          Create account
+        </button>
+      </form>
+
+      <GoogleSignIn />
+    </AuthLayout>
   );
 }

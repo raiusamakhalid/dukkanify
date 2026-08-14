@@ -1162,3 +1162,16 @@ an unknown address at 85ms each, 200 for an uppercased address, and 429 on the s
 Components, which means a rejected form arrives empty and the address has to be retyped. And
 rule 2 has a casualty: sign up with a password, then click Continue with Google, and the
 password is gone with no reset flow to recover it.
+
+---
+
+## Follow-up — marketing, shell, and builder workspace
+
+**Prompt** Push the code (uncommitted web UI already in the working tree).
+
+**What it produced** Marketing landing split into feature sections with Motion; dashboard
+sidebar shell; builder moved to its own route group so editor chrome is not the store list
+layout; generation progress, Unsplash imagery helper, section rail and theme presets.
+
+**Trade-off** Adds the `motion` package. Theme presets and colour pickers remain preview-only
+on the API side.
