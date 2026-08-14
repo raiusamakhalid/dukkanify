@@ -101,9 +101,9 @@ apps/api/src/
 ├── infrastructure/prisma/{prisma.module.ts,prisma.service.ts}
 └── modules/
     ├── auth/                                     thin — no domain layer needed
-    │   ├── application/auth.service.ts
-    │   ├── infrastructure/{google-token.verifier.ts,jwt.strategy.ts,jwt-auth.guard.ts}
-    │   └── presentation/auth.controller.ts
+    │   ├── application/{auth.service.ts,auth.ports.ts}
+    │   ├── infrastructure/{google-token.verifier.ts,scrypt-password.hasher.ts,jwt.strategy.ts,jwt-auth.guard.ts}
+    │   └── presentation/{auth.controller.ts,password-auth.controller.ts}
     ├── stores/
     │   ├── domain/
     │   │   ├── entities/{store,page,section,product}.entity.ts
@@ -154,13 +154,14 @@ apps/web/src/
 ├── app/
 │   ├── layout.tsx                       next/font, dir attribute from store locale
 │   ├── (marketing)/page.tsx             landing — Server Component
-│   ├── (auth)/login/page.tsx
+│   ├── (auth)/{login,signup}/page.tsx    password forms + the Google button
 │   ├── (dashboard)/layout.tsx           session guard, shell
 │   ├── (dashboard)/dashboard/page.tsx   "Welcome Abdullah" + Create Store
 │   ├── (dashboard)/builder/[storeId]/page.tsx
 │   ├── preview/[slug]/page.tsx          public storefront
 │   └── api/auth/[...nextauth]/route.ts
 ├── features/
+│   ├── auth/{actions.ts,google-sign-in.tsx}
 │   ├── generation/{prompt-composer.tsx,actions.ts}
 │   ├── builder/{editor-panel.tsx,builder-store.ts}
 │   └── storefront/
@@ -469,9 +470,54 @@ sequenceDiagram
   B->>A: subsequent calls with Authorization: Bearer
 ```
 
-One identity provider, one application token, both apps agreeing on it. The Google
-token is verified **server-side** against the client ID — a frontend check proves
-nothing, since anything the browser asserts is attacker-controlled.
+```mermaid
+sequenceDiagram
+  autonumber
+  participant B as Browser
+  participant W as Next.js (Auth.js Credentials)
+  participant A as NestJS
+  B->>W: email + password (Server Action)
+  W->>A: POST /api/v1/auth/register or /auth/login
+  A->>A: scrypt hash, or verify + spend the same time on a miss
+  A-->>W: { accessToken (JWT, 7d), user }
+  W->>W: same session cookie the Google path writes
+  B->>A: subsequent calls with Authorization: Bearer
+```
+
+Two doors, one application token, both apps agreeing on it. The Google token is verified
+**server-side** against the client ID — a frontend check proves nothing, since anything
+the browser asserts is attacker-controlled.
+
+### The password door
+
+`POST /auth/register` and `POST /auth/login` answer with exactly the same
+`{ accessToken, user }` the Google exchange returns, so `JwtStrategy`, every ownership
+check and `apiAsUser` are untouched by which door a caller used. On the web side it is an
+Auth.js `Credentials` provider rather than a session mechanism of its own, so the
+credential still lands on the one encrypted cookie `getAccessToken` reads.
+
+Four rules make a password field safe enough to exist here without a verification email:
+
+1. **Registration never writes onto an existing row.** An address that already has an
+   account gets a `409`; attaching a hash to it would be account takeover by anyone who
+   knows the address. The refusal does not say which sign-in method that account uses.
+2. **A Google sign-in clears any password hash on the row it adopts.** Google has verified
+   the address; nobody verified the password. Without this, registering
+   `victim@example.com` before the owner ever arrives leaves the impostor a working
+   credential on the account the owner then uses. `emailVerified` in `AuthService` is what
+   makes "Google wins" true, and is load-bearing rather than hygiene.
+3. **One sentence for every failed sign-in** — unknown address, wrong password, or an
+   account with no password: _"Email or password is incorrect."_ The sign-in page carries a
+   standing note about Google linking, which explains rule 2's one casualty without
+   confirming that any particular address is registered.
+4. **A miss costs the same as a hit.** No account found still spends a key derivation, or an
+   unknown address is refused in a millisecond and a known one in ~85ms — measured, and an
+   enumeration oracle no wording can close.
+
+Passwords are stored as salted scrypt (`N=2^15, r=8, p=1`) with the parameters inside the
+hash string, so the cost can be raised later without invalidating existing hashes. The
+address is lowercased before every lookup and insert: Postgres `@unique` is case-sensitive,
+so `A@x.com` would otherwise become a second account for one person — and slip past rule 1.
 
 Ownership is enforced **inside the use case**, not the controller. A guard proves _who_
 you are; only the use case knows whether this user may touch this store. Putting it in
@@ -485,6 +531,8 @@ it cannot be bypassed.
 | Method   | Path                                    | Auth                 | Purpose                                           |
 | -------- | --------------------------------------- | -------------------- | ------------------------------------------------- |
 | `POST`   | `/api/v1/auth/google`                   | public               | Exchange Google `id_token` for an application JWT |
+| `POST`   | `/api/v1/auth/register`                 | public, 5/min/IP     | Create an account from an email and a password    |
+| `POST`   | `/api/v1/auth/login`                    | public, 5/min/IP     | Exchange an email and password for the same JWT   |
 | `POST`   | `/api/v1/generate`                      | required, 5/min/user | Generate and persist a store from a prompt        |
 | `POST`   | `/api/v1/store`                         | required             | Persist or update a store the client holds        |
 | `GET`    | `/api/v1/store`                         | required             | List the current user's stores                    |
@@ -511,6 +559,7 @@ Application code throws `DomainError` subclasses; it never throws `HttpException
 | `UnauthorizedError`              | 401    | Missing or invalid token                            |
 | `ForbiddenError`                 | 403    | Authenticated but not the owner                     |
 | `NotFoundError`                  | 404    | Store or section does not exist for this owner      |
+| `ConflictError`                  | 409    | The address already has an account                  |
 | `BlueprintGenerationFailedError` | 422    | Model output failed the contract twice              |
 | `AiProviderUnavailableError`     | 503    | Upstream timeout or network failure                 |
 | anything else                    | 500    | Logged with requestId; no stack trace in production |
@@ -629,6 +678,20 @@ Accurate as of submission. Nothing below is implied to work elsewhere in the rep
 - **`StoreVersion` exists in the schema with no producer.** Nothing writes a version row; it
   is the table version history would be built on, and it is empty by design rather than by
   oversight.
+- **Password sign-in ships without verification, reset or lockout.** Registration accepts any
+  address without proving it, which is why a Google sign-in clears the password hash on the
+  row it adopts (§8) — and why the one person that strands, someone who signed up with a
+  password and later chose Google, has no way back to a password. Rate limiting is five
+  attempts a minute keyed on the IP, because `ScopedThrottlerGuard` has nothing else to key
+  on for a public route: it slows one source down and does nothing about a distributed one.
+  Nothing rehashes when scrypt's cost is raised, though the parameters are stored per hash so
+  it can be. And the access token is a stateless 7-day JWT, so losing or changing a password
+  does not end sessions that already exist.
+- **The repository half of the password path has no test.** `AuthService`'s decisions are unit
+  tested and `ScryptPasswordHasher` runs real key derivation, but "a Google sign-in clears the
+  hash" and "a lost insert race becomes a 409" live in `PrismaUserAccountRepository`, which
+  §13 leaves untested along with every other repository. Both were exercised by hand against
+  the running API; neither is guarded by CI.
 - **No image upload, no publishing to a custom domain, no billing.** Out of scope.
 - **The storefront is one scrolling document, not three routes.** `/preview/:slug` stacks the
   Home, About and Contact pages with in-page anchors, because a generated `ctaHref` is an
@@ -679,18 +742,21 @@ Accurate as of submission. Nothing below is implied to work elsewhere in the rep
 
 ## 17. Decision record
 
-| #   | Decision                            | Alternative rejected                   | Reason                                                                                                           |
-| --- | ----------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| 1   | npm workspaces monorepo             | Two repos                              | The shared contract is the point; two repos means duplicated types and version skew on day one                   |
-| 2   | No Turborepo                        | Turborepo                              | Build caching, not architecture. Setup cost buys nothing in 12 hours                                             |
-| 3   | Zod contract package                | Types in each app                      | One definition serving prompt schema, API validation and UI types is what makes the AI boundary safe             |
-| 4   | Ports for AI and persistence        | Inject `PrismaService` / SDK directly  | These are the two volatile dependencies; both must be swappable without touching use cases                       |
-| 5   | Mock generator shipped              | Only the real provider                 | Enables offline development, zero-cost iteration, and unit tests without a network                               |
-| 6   | Repair turn on schema failure       | Blind retry, or accept partial output  | Retry re-rolls the same failure; partial output corrupts the database                                            |
-| 7   | JSON columns for theme/content      | A table per section type               | Section shapes change constantly; a migration per design tweak is untenable. Zod restores safety at the boundary |
-| 8   | `Decimal(10,2)`                     | `Float`                                | Floating point cannot represent currency                                                                         |
-| 9   | Ownership check in use case         | In the controller or a guard           | A guard knows who you are, not what you may touch. In the use case it cannot be bypassed by a new route          |
-| 10  | Token exchange server-side          | Trust the Google token in the frontend | Anything the browser asserts is attacker-controlled                                                              |
-| 11  | CSS custom properties for theming   | Tailwind config / theme provider       | The AI generates arbitrary palettes at runtime; a compile-time theme cannot express that                         |
-| 12  | Section registry with `never` check | Switch statement                       | Makes an unhandled section type a compile error and reduces a new section to three lines                         |
-| 13  | Bonuses cut, cuts documented        | Ship partial bonuses                   | A complete core with an honest gap list is worth more than four half-built features                              |
+| #   | Decision                            | Alternative rejected                   | Reason                                                                                                                                       |
+| --- | ----------------------------------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | npm workspaces monorepo             | Two repos                              | The shared contract is the point; two repos means duplicated types and version skew on day one                                               |
+| 2   | No Turborepo                        | Turborepo                              | Build caching, not architecture. Setup cost buys nothing in 12 hours                                                                         |
+| 3   | Zod contract package                | Types in each app                      | One definition serving prompt schema, API validation and UI types is what makes the AI boundary safe                                         |
+| 4   | Ports for AI and persistence        | Inject `PrismaService` / SDK directly  | These are the two volatile dependencies; both must be swappable without touching use cases                                                   |
+| 5   | Mock generator shipped              | Only the real provider                 | Enables offline development, zero-cost iteration, and unit tests without a network                                                           |
+| 6   | Repair turn on schema failure       | Blind retry, or accept partial output  | Retry re-rolls the same failure; partial output corrupts the database                                                                        |
+| 7   | JSON columns for theme/content      | A table per section type               | Section shapes change constantly; a migration per design tweak is untenable. Zod restores safety at the boundary                             |
+| 8   | `Decimal(10,2)`                     | `Float`                                | Floating point cannot represent currency                                                                                                     |
+| 9   | Ownership check in use case         | In the controller or a guard           | A guard knows who you are, not what you may touch. In the use case it cannot be bypassed by a new route                                      |
+| 10  | Token exchange server-side          | Trust the Google token in the frontend | Anything the browser asserts is attacker-controlled                                                                                          |
+| 11  | CSS custom properties for theming   | Tailwind config / theme provider       | The AI generates arbitrary palettes at runtime; a compile-time theme cannot express that                                                     |
+| 12  | Section registry with `never` check | Switch statement                       | Makes an unhandled section type a compile error and reduces a new section to three lines                                                     |
+| 13  | Bonuses cut, cuts documented        | Ship partial bonuses                   | A complete core with an honest gap list is worth more than four half-built features                                                          |
+| 14  | scrypt from `node:crypto`           | bcryptjs, argon2                       | A memory-hard KDF with no dependency added and no native binary to bundle in a function; the cost is ~25 lines of hash encoding written down |
+| 15  | Google sign-in clears a password    | Keep both credentials; verify by email | Without a verification email, registering someone else's address first would leave a working password on the account they later use          |
+| 16  | One sentence for every failed login | Say which of the three cases it was    | The helpful message is an account-existence oracle; the standing note about Google linking explains the stranded case without one            |

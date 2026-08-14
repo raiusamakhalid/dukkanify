@@ -1135,3 +1135,30 @@ carries `STORE_BLUEPRINT_TOOL_SCHEMA` because the API still will not accept it a
 **Trade-off** 400/403 used to fall through to 500 on purpose (§10: an application bug).
 That hid the only fact the operator could act on. They are now a 503 with a readable
 message; a leftover 4xx that is not 400/403/404 still becomes 500.
+
+---
+
+## Follow-up — email and password sign-in beside Google
+
+**Prompt** "add login simple and sighnup", run through `/kanalysis`.
+
+**What it produced** The interrogation changed the shape of the task twice before any code:
+"login only, no signup" turned out to be unimplementable (the only writer of a `User` row was
+the Google upsert, and no seed exists), and the collision branch surfaced pre-emptive
+hijacking — register `victim@example.com`, wait for them to arrive via Google, keep the
+password. Resolved as: registration never writes onto an existing row (`409`), and a Google
+sign-in clears any hash on the row it adopts.
+
+Shipped: `POST /auth/register` (201) and `POST /auth/login` (200) returning the same
+`{ accessToken, user }` as `/auth/google`; `PasswordHasherPort` with a `node:crypto` scrypt
+adapter (`N=2^15, r=8, p=1`, parameters stored in the hash, `maxmem` raised to 64 MiB because
+the default rejects these exact parameters); `ConflictError` → 409 in §10; an Auth.js
+`Credentials` provider whose token the `jwt` callback carries; `/signup`, a password form on
+`/login`, and one `(auth)/{loading,error}.tsx` pair. Verified against the running API: 201,
+then 409 on the duplicate, 200 on sign-in, 401 with one sentence for both a wrong password and
+an unknown address at 85ms each, 200 for an uppercased address, and 429 on the sixth attempt.
+
+**Trade-off** Failures come back as `?error=` codes so both pages stay zero-JavaScript Server
+Components, which means a rejected form arrives empty and the address has to be retyped. And
+rule 2 has a casualty: sign up with a password, then click Continue with Google, and the
+password is gone with no reset flow to recover it.
