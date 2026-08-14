@@ -180,15 +180,29 @@ export class ClaudeGenerator implements AiGeneratorPort {
 
     if (error instanceof Anthropic.APIConnectionError) {
       this.logger.warn(`Anthropic unreachable: ${error.message}`);
-      return new AiProviderUnavailableError();
+      return AiProviderUnavailableError.transient();
     }
 
-    if (
-      error instanceof Anthropic.RateLimitError ||
-      error instanceof Anthropic.InternalServerError
-    ) {
+    // A 5xx is the vendor's own fault and gone by the next attempt, so it is marked transient
+    // for RetryingGenerator. The SDK has already made its own attempts by this point — its
+    // built-in retries are bounded by our AbortController — so reaching here means those were
+    // exhausted, and one more try after a short pause is the last cheap thing worth doing.
+    if (error instanceof Anthropic.InternalServerError) {
       this.logger.warn(`Anthropic returned ${String(error.status)}`);
-      return new AiProviderUnavailableError();
+      return AiProviderUnavailableError.transient();
+    }
+
+    // A 429 is deliberately *not* transient. Rate limits clear on the vendor's schedule, not
+    // ours, and the SDK already honoured any `Retry-After` it was given; hammering it again
+    // 400ms later would earn a longer limit. The caller is told to come back instead, which
+    // matches how the Gemini adapter treats its own 429.
+    if (error instanceof Anthropic.RateLimitError) {
+      this.logger.warn(
+        `Anthropic rate limit reached (${String(error.status)})`,
+      );
+      return new AiProviderUnavailableError(
+        'The store generator is busy. Please try again in a moment.',
+      );
     }
 
     // A 400 or a 401 is our bug or our configuration, and a 500 with a request id is the

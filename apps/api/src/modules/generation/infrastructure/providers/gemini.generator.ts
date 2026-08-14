@@ -190,16 +190,18 @@ export class GeminiGenerator implements AiGeneratorPort {
     }
 
     if (status !== undefined && status >= 500) {
+      // Overload, almost always, and gone by the next attempt: marked transient so
+      // RetryingGenerator tries again rather than failing a page on one vendor hiccup.
       this.logger.warn(`Gemini returned ${String(status)}`);
-      return new AiProviderUnavailableError();
+      return AiProviderUnavailableError.transient();
     }
 
     if (status === undefined) {
-      // No HTTP status at all: DNS, TLS, a dropped socket.
+      // No HTTP status at all: DNS, TLS, a dropped socket. Also worth a second attempt.
       this.logger.warn(
         `Gemini unreachable: ${error instanceof Error ? error.message : String(error)}`,
       );
-      return new AiProviderUnavailableError();
+      return AiProviderUnavailableError.transient();
     }
 
     // 400 or 403 is our schema, our model name or our key — this application's bug, and a

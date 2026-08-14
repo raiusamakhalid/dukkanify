@@ -10,6 +10,7 @@ import { GenerateStoreUseCase } from './application/use-cases/generate-store.use
 import { ClaudeGenerator } from './infrastructure/providers/claude.generator';
 import { GeminiGenerator } from './infrastructure/providers/gemini.generator';
 import { MockGenerator } from './infrastructure/providers/mock.generator';
+import { RetryingGenerator } from './infrastructure/providers/retrying.generator';
 import { GenerationController } from './presentation/generation.controller';
 
 /**
@@ -28,10 +29,11 @@ import { GenerationController } from './presentation/generation.controller';
       inject: [AppConfig],
       useFactory: (config: AppConfig): AiGeneratorPort => {
         switch (config.ai.provider) {
+          // Only the networked adapters are wrapped: the mock has nothing transient to fail.
           case 'claude':
-            return new ClaudeGenerator(config);
+            return new RetryingGenerator(new ClaudeGenerator(config));
           case 'gemini':
-            return new GeminiGenerator(config);
+            return new RetryingGenerator(new GeminiGenerator(config));
           case 'mock':
             return new MockGenerator();
         }

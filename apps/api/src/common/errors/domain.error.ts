@@ -78,7 +78,26 @@ export class AiProviderUnavailableError extends DomainError {
 
   constructor(
     message = 'The store generator is temporarily unavailable. Please try again.',
+    /**
+     * Whether an immediate second attempt could plausibly succeed. All of these map to the
+     * same 503, because the caller can do nothing different either way — but they are not the
+     * same event to us. A vendor 5xx clears in milliseconds and is worth retrying inside the
+     * request; a sixty-second timeout has already spent the budget another attempt would need,
+     * and an exhausted daily quota will still be exhausted a second later. Retrying those two
+     * would turn one slow failure into several, which is how a struggling dependency gets
+     * pushed over. Defaults to `false` so a new failure mode is only retried deliberately.
+     */
+    readonly retryable = false,
   ) {
     super(message);
+  }
+
+  /**
+   * A failure another attempt could clear: a 5xx from the vendor, or a socket that never
+   * opened. Named rather than `new AiProviderUnavailableError(undefined, true)`, which reads
+   * as nothing at all at the call site.
+   */
+  static transient(): AiProviderUnavailableError {
+    return new AiProviderUnavailableError(undefined, true);
   }
 }

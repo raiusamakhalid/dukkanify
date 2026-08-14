@@ -206,6 +206,51 @@ describe('GeminiGenerator', () => {
     ).rejects.toThrow(AiProviderUnavailableError);
   });
 
+  /**
+   * The contract with `RetryingGenerator`. It retries on this flag alone, so if these stop
+   * being marked the retry silently becomes dead code — which is exactly the bug that let a
+   * single Gemini 503 fail a live generation.
+   */
+  describe('marks which failures are worth another attempt', () => {
+    const retryableOf = async (error: Error): Promise<boolean | undefined> => {
+      const generateContent = failing(error);
+      try {
+        await new GeminiGenerator(config, { generateContent }).generate(
+          REQUEST,
+        );
+        return undefined;
+      } catch (thrown) {
+        return thrown instanceof AiProviderUnavailableError
+          ? thrown.retryable
+          : undefined;
+      }
+    };
+
+    it('treats a server error as transient', async () => {
+      await expect(
+        retryableOf(apiError(503, 'model overloaded')),
+      ).resolves.toBe(true);
+    });
+
+    it('treats an unreachable host as transient', async () => {
+      await expect(
+        retryableOf(new Error('getaddrinfo ENOTFOUND')),
+      ).resolves.toBe(true);
+    });
+
+    it('does not treat a rate limit as transient — it clears on Google’s schedule', async () => {
+      await expect(retryableOf(apiError(429, QUOTA_PER_MINUTE))).resolves.toBe(
+        false,
+      );
+    });
+
+    it('does not treat an exhausted daily quota as transient', async () => {
+      await expect(retryableOf(apiError(429, QUOTA_PER_DAY))).resolves.toBe(
+        false,
+      );
+    });
+  });
+
   it('lets a rejected request surface as a server error rather than a 503', async () => {
     // A 400 means our model name or our request is wrong. "Try again shortly" would be a
     // lie, and it would hide the bug behind a retry.
