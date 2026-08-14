@@ -12,6 +12,7 @@ import { AppConfig } from '../../config/configuration';
 import {
   AiProviderUnavailableError,
   BlueprintGenerationFailedError,
+  ConflictError,
   DomainError,
   ForbiddenError,
   NotFoundError,
@@ -27,6 +28,7 @@ const STATUS_BY_ERROR: ReadonlyArray<
   [UnauthorizedError, HttpStatus.UNAUTHORIZED],
   [ForbiddenError, HttpStatus.FORBIDDEN],
   [NotFoundError, HttpStatus.NOT_FOUND],
+  [ConflictError, HttpStatus.CONFLICT],
   [BlueprintGenerationFailedError, HttpStatus.UNPROCESSABLE_ENTITY],
   [AiProviderUnavailableError, HttpStatus.SERVICE_UNAVAILABLE],
 ];

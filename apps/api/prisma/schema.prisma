@@ -22,8 +22,12 @@ model User {
   name      String?
   avatarUrl String?
   googleId  String?  @unique
-  stores    Store[]
-  createdAt DateTime @default(now())
+  // scrypt, salted, parameters encoded in the string. Null for an account that signs in
+  // with Google only — and set back to null when a Google sign-in adopts this row, because
+  // a verified address outranks a password nobody verified (§8).
+  passwordHash String?
+  stores       Store[]
+  createdAt    DateTime @default(now())
 }
 
 model Store {

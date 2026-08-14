@@ -1,6 +1,19 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
-import type { AuthResponse, UserDto } from '@dukkanify/contracts';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsString,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
+import {
+  MAX_PASSWORD_LENGTH,
+  MIN_PASSWORD_LENGTH,
+  type AuthResponse,
+  type SignInRequest,
+  type SignUpRequest,
+  type UserDto,
+} from '@dukkanify/contracts';
 
 /**
  * The HTTP shapes of the auth endpoint.
@@ -27,6 +40,50 @@ export class GoogleSignInDto {
   @IsNotEmpty()
   @MaxLength(MAX_ID_TOKEN_LENGTH)
   idToken!: string;
+}
+
+/** RFC 5321's ceiling. Longer than this is a payload, not an address. */
+const MAX_EMAIL_LENGTH = 254;
+const MAX_NAME_LENGTH = 80;
+
+export class SignUpDto implements SignUpRequest {
+  @ApiProperty({ example: 'abdullah@example.ae', maxLength: MAX_EMAIL_LENGTH })
+  @IsEmail()
+  @MaxLength(MAX_EMAIL_LENGTH)
+  email!: string;
+
+  @ApiProperty({
+    description: 'Stored only as a salted scrypt hash.',
+    minLength: MIN_PASSWORD_LENGTH,
+    maxLength: MAX_PASSWORD_LENGTH,
+  })
+  @IsString()
+  @MinLength(MIN_PASSWORD_LENGTH)
+  @MaxLength(MAX_PASSWORD_LENGTH)
+  password!: string;
+
+  @ApiProperty({ example: 'Abdullah Al Mansoori', maxLength: MAX_NAME_LENGTH })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(MAX_NAME_LENGTH)
+  name!: string;
+}
+
+/**
+ * Sign-in does not re-apply the sign-up minimum: refusing a short password here would answer
+ * "that is too short to be a password on this system", and the hash is what decides anyway.
+ */
+export class SignInDto implements SignInRequest {
+  @ApiProperty({ example: 'abdullah@example.ae', maxLength: MAX_EMAIL_LENGTH })
+  @IsEmail()
+  @MaxLength(MAX_EMAIL_LENGTH)
+  email!: string;
+
+  @ApiProperty({ maxLength: MAX_PASSWORD_LENGTH })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(MAX_PASSWORD_LENGTH)
+  password!: string;
 }
 
 export class AuthUserDto implements UserDto {

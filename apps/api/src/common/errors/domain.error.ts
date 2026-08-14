@@ -61,6 +61,23 @@ export class NotFoundError extends DomainError {
 }
 
 /**
+ * The request was well formed and the state of the world refuses it — an email address that
+ * already has an account, not a field that failed a rule.
+ *
+ * Distinct from `ValidationError` because the difference is actionable: a 400 says "fix what
+ * you typed", a 409 says "what you typed is fine and it is already taken". Nothing here says
+ * *how* that account signs in; telling a stranger which addresses use Google is not this
+ * error's business (§8).
+ */
+export class ConflictError extends DomainError {
+  readonly code = 'CONFLICT';
+
+  constructor(message: string, details?: unknown) {
+    super(message, details);
+  }
+}
+
+/**
  * The model's output failed the contract twice, including after a repair turn. A contract
  * violation is not a server fault, which is why this is a 422 and never a 500.
  */

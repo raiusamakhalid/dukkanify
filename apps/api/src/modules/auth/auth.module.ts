@@ -5,13 +5,16 @@ import { AppConfig } from '../../config/configuration';
 import { PrismaModule } from '../../infrastructure/prisma/prisma.module';
 import {
   GOOGLE_TOKEN_VERIFIER,
+  PASSWORD_HASHER,
   USER_ACCOUNT_REPOSITORY,
 } from './application/auth.ports';
 import { AuthService } from './application/auth.service';
 import { GoogleTokenVerifier } from './infrastructure/google-token.verifier';
 import { JwtStrategy } from './infrastructure/jwt.strategy';
 import { PrismaUserAccountRepository } from './infrastructure/prisma-user-account.repository';
+import { ScryptPasswordHasher } from './infrastructure/scrypt-password.hasher';
 import { AuthController } from './presentation/auth.controller';
+import { PasswordAuthController } from './presentation/password-auth.controller';
 
 /**
  * Ports bound to adapters here and nowhere else: `AuthService` names an interface, this
@@ -31,12 +34,13 @@ import { AuthController } from './presentation/auth.controller';
     }),
     PrismaModule,
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, PasswordAuthController],
   providers: [
     AuthService,
     JwtStrategy,
     { provide: GOOGLE_TOKEN_VERIFIER, useClass: GoogleTokenVerifier },
     { provide: USER_ACCOUNT_REPOSITORY, useClass: PrismaUserAccountRepository },
+    { provide: PASSWORD_HASHER, useClass: ScryptPasswordHasher },
   ],
 })
 export class AuthModule {}
