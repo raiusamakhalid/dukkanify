@@ -1,0 +1,7 @@
+# This host serves the JSON API, not pages. Nothing here is for a search index.
+#
+# It also gives the deployment the static output directory Vercel expects from a project
+# with no framework preset. Vercel checks the filesystem before applying the rewrite in
+# vercel.json, so this file is served as itself and every other path reaches Nest.
+User-agent: *
+Disallow: /
