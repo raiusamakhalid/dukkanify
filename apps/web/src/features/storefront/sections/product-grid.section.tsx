@@ -41,7 +41,7 @@ export function ProductGridSection({
   return (
     <section
       id={category === undefined ? "products" : `products-${category.slug}`}
-      className="px-6 sm:px-10"
+      className="px-5 @2xl:px-10"
       style={{ paddingBlock: "var(--brand-space)" }}
     >
       <div className="mx-auto max-w-6xl">
@@ -50,7 +50,7 @@ export function ProductGridSection({
           subheading={content.subheading}
         />
 
-        <ul className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <ul className="mt-12 grid gap-5 @lg:grid-cols-2 @4xl:grid-cols-4 @4xl:gap-6">
           {products.map((product) => (
             <li key={product.id}>
               <ProductCard product={product} store={store} />

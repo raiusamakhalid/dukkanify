@@ -4,6 +4,7 @@ import {
   themeToCssVariables,
 } from "@dukkanify/contracts";
 import type { CSSProperties, ReactNode } from "react";
+import { cn } from "@/lib/utils";
 import { fontStackFor } from "@/lib/fonts";
 
 /**
@@ -51,17 +52,33 @@ export function storefrontStyle(store: StoreDto): CSSProperties {
 export function StorefrontFrame({
   store,
   children,
+  className,
   ...rest
 }: {
   store: StoreDto;
   children: ReactNode;
 } & Omit<React.ComponentProps<"div">, "children" | "style">) {
   return (
+    /*
+      `@container` is the load-bearing class on this element.
+
+      Every section below sizes itself with container queries — `@4xl:grid-cols-2` rather
+      than `lg:grid-cols-2` — which means the storefront responds to the width of *this*
+      element instead of the width of the window. On the public route the two are the same
+      thing. Inside the builder they are not: the canvas is roughly half a laptop, and with
+      viewport queries a hero laid out for 1440px was being drawn into 700px, wrapping its
+      headline onto four lines. It is also what makes the builder's mobile toggle honest —
+      narrowing the canvas now produces the real mobile layout rather than a squeezed
+      desktop one.
+    */
     <div
       lang={store.locale}
       dir={store.direction.toLowerCase()}
       style={storefrontStyle(store)}
       data-storefront={store.slug}
+      // Pulled out of `rest` and merged rather than spread over: a caller passing a class
+      // must not be able to remove the container that every section below depends on.
+      className={cn("@container", className)}
       {...rest}
     >
       <StorefrontHeader store={store} />
@@ -75,7 +92,7 @@ export function StorefrontFrame({
 function StorefrontHeader({ store }: { store: StoreDto }) {
   return (
     <header
-      className="flex flex-wrap items-center justify-between gap-4 px-6 py-5 sm:px-10 sm:py-6"
+      className="flex flex-wrap items-center justify-between gap-4 px-5 py-5 @2xl:px-10 @2xl:py-6"
       style={{
         borderBottom:
           "1px solid color-mix(in srgb, var(--brand-muted) 22%, transparent)",
@@ -94,7 +111,10 @@ function StorefrontHeader({ store }: { store: StoreDto }) {
       <div className="flex flex-wrap items-center gap-5">
         <nav
           aria-label={`${store.name} pages`}
-          className="flex flex-wrap items-center gap-5 text-sm"
+          // Wraps rather than hides on a narrow storefront: the About and Contact pages are
+          // only reachable from here and the footer, and a shop with no way to reach its
+          // contact page on a phone is a shop nobody can phone.
+          className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm"
           style={{ fontFamily: "var(--brand-font-body)" }}
         >
           {store.pages.map((page) => (
@@ -136,14 +156,14 @@ function StorefrontHeader({ store }: { store: StoreDto }) {
 function StorefrontFooter({ store }: { store: StoreDto }) {
   return (
     <footer
-      className="px-6 py-12 sm:px-10"
+      className="px-5 py-12 @2xl:px-10"
       style={{
         borderTop:
           "1px solid color-mix(in srgb, var(--brand-muted) 22%, transparent)",
         fontFamily: "var(--brand-font-body)",
       }}
     >
-      <div className="mx-auto flex max-w-6xl flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mx-auto flex max-w-6xl flex-col gap-6 @2xl:flex-row @2xl:items-end @2xl:justify-between">
         <div className="max-w-md">
           <p
             className="text-lg font-semibold"

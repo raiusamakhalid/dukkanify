@@ -35,7 +35,7 @@ export function CategoryGridSection({
 
   return (
     <section
-      className="px-6 sm:px-10"
+      className="px-5 @2xl:px-10"
       style={{ paddingBlock: "var(--brand-space)" }}
     >
       <div className="mx-auto max-w-6xl">
@@ -44,7 +44,7 @@ export function CategoryGridSection({
           subheading={content.subheading}
         />
 
-        <ul className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="mt-12 grid gap-5 @lg:grid-cols-2 @3xl:grid-cols-3">
           {featured.map((category) => (
             <li key={category.id}>
               <CategoryTile

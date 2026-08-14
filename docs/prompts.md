@@ -1175,3 +1175,16 @@ layout; generation progress, Unsplash imagery helper, section rail and theme pre
 
 **Trade-off** Adds the `motion` package. Theme presets and colour pickers remain preview-only
 on the API side.
+
+---
+
+## Follow-up — storefront container queries
+
+**Prompt** Push the code.
+
+**What it produced** Storefront sections size against the canvas (`@container`) instead of
+the viewport, so the builder's half-width preview and mobile toggle show the real layout.
+Hero photograph sits below the copy on a narrow canvas; marketing hero chips sit closer in.
+
+**Trade-off** Public `/preview/:slug` still looks like the full-width shop — the container
+and the window are the same there.

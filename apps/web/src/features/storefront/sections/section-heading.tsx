@@ -22,7 +22,7 @@ export function SectionHeading({
       />
 
       <h2
-        className="mt-5 text-3xl leading-tight font-semibold text-balance sm:text-4xl"
+        className="mt-5 text-2xl leading-tight font-semibold text-balance @xl:text-3xl @4xl:text-4xl"
         style={{
           fontFamily: "var(--brand-font-display)",
           color: "var(--brand-fg)",

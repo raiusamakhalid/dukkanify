@@ -14,11 +14,11 @@ import { SectionHeading } from "./section-heading";
 export function RichTextSection({ content }: { content: RichTextContent }) {
   return (
     <section
-      className="px-6 sm:px-10"
+      className="px-5 @2xl:px-10"
       style={{ paddingBlock: "var(--brand-space)" }}
     >
       <div
-        className="mx-auto max-w-3xl px-6 py-10 sm:px-12 sm:py-14"
+        className="mx-auto max-w-3xl px-6 py-10 @2xl:px-12 @2xl:py-14"
         style={{
           background:
             "linear-gradient(180deg, color-mix(in srgb, var(--brand-accent) 9%, transparent), transparent)",

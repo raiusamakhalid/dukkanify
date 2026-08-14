@@ -16,13 +16,13 @@ import { SectionHeading } from "./section-heading";
 export function ContactSection({ content }: { content: ContactContent }) {
   return (
     <section
-      className="px-6 sm:px-10"
+      className="px-5 @2xl:px-10"
       style={{ paddingBlock: "var(--brand-space)" }}
     >
       <div className="mx-auto max-w-4xl">
         <SectionHeading heading={content.heading} />
 
-        <dl className="mt-10 grid gap-4 sm:grid-cols-2">
+        <dl className="mt-10 grid gap-4 @2xl:grid-cols-2">
           <Detail label="Email" icon={<Mail className="size-4" />}>
             <ContactLink href={`mailto:${content.email}`}>
               {content.email}

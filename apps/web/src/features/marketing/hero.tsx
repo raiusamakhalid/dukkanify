@@ -253,7 +253,7 @@ function HeroFloatingCards({ delay }: { delay: number }) {
           chip parked on a product shot reads as an annotation; the same chip halfway through
           a headline reads as a rendering bug, which is what the first pass at this was. */}
       <FloatingCard
-        className="bottom-[20%] -start-12 xl:-start-16"
+        className="bottom-[20%] -start-8 2xl:-start-14"
         delay={delay}
         duration="7s"
         icon={<Store className="size-3.5" />}
@@ -262,7 +262,7 @@ function HeroFloatingCards({ delay }: { delay: number }) {
       </FloatingCard>
 
       <FloatingCard
-        className="top-[42%] -end-12 xl:-end-16"
+        className="top-[42%] -end-4 2xl:-end-14"
         delay={delay + 0.12}
         duration="8.5s"
         icon={<Palette className="text-gold size-3.5" />}
@@ -271,7 +271,7 @@ function HeroFloatingCards({ delay }: { delay: number }) {
       </FloatingCard>
 
       <FloatingCard
-        className="bottom-[20%] -end-10 xl:-end-14"
+        className="bottom-[20%] -end-4 2xl:-end-12"
         delay={delay + 0.24}
         duration="9.5s"
         icon={<Languages className="size-3.5" />}
