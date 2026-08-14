@@ -2,15 +2,23 @@ import 'dotenv/config';
 import { defineConfig } from 'prisma/config';
 
 /**
- * `DIRECT_URL` first, `DATABASE_URL` second.
+ * The unpooled connection first, the ordinary one second.
  *
  * A hosted Postgres is reached through a connection pooler (Neon's `-pooler` host, PgBouncer
  * anywhere else), which is right for a serverless runtime and wrong for a migration: DDL and
  * the advisory lock `migrate deploy` takes both need one session that stays put. Only the
  * migration path reads this file, so pointing it at the unpooled host keeps the two concerns
  * separate without the application knowing there is more than one URL.
+ *
+ * `DATABASE_URL_UNPOOLED` is the name Neon's Vercel integration injects, and reading it
+ * directly is deliberate: the alternative is copying a live credential into a second variable,
+ * which doubles the number of places a rotated password has to be updated. `DIRECT_URL` stays
+ * ahead of it as the manual override for a host that names its unpooled URL something else.
  */
-const databaseUrl = process.env['DIRECT_URL'] ?? process.env['DATABASE_URL'];
+const databaseUrl =
+  process.env['DIRECT_URL'] ??
+  process.env['DATABASE_URL_UNPOOLED'] ??
+  process.env['DATABASE_URL'];
 
 export default defineConfig({
   schema: 'prisma/schema.prisma',
