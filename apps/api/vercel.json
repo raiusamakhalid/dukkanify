@@ -4,7 +4,7 @@
   "buildCommand": "cd ../.. && npm run contracts:build && cd apps/api && npm run build:vercel",
   "functions": {
     "api/index.ts": {
-      "maxDuration": 60,
+      "maxDuration": 150,
       "includeFiles": "dist/**"
     }
   },

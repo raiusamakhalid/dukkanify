@@ -23,7 +23,7 @@
     "db:migrate": "npm run db:migrate -w api",
     "db:deploy": "npm run db:deploy -w api",
     "db:seed": "npm run db:seed -w api",
-    "prepare": "husky && npm run contracts:build"
+    "prepare": "node scripts/prepare.mjs"
   },
   "lint-staged": {
     "*.{ts,tsx,json,md}": "prettier --write"
