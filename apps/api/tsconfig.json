@@ -14,5 +14,8 @@
     "incremental": true,
     "baseUrl": "./",
     "outDir": "./dist"
-  }
+  },
+  // `api/` holds the Vercel function entry, which imports from dist/ and so cannot be
+  // typechecked before a build — see the comment in api/index.ts. dist/ itself is output.
+  "exclude": ["node_modules", "dist", "api"]
 }
