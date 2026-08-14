@@ -42,6 +42,47 @@ export const AuthResponseSchema = z.object({
 });
 export type AuthResponse = z.infer<typeof AuthResponseSchema>;
 
+/**
+ * The password policy, in one place because three layers need the same numbers: the API
+ * refuses what falls outside them, the sign-up form counts to them, and the sentence a
+ * person reads quotes them.
+ */
+export const MIN_PASSWORD_LENGTH = 8;
+export const MAX_PASSWORD_LENGTH = 128;
+
+/** The RFC 5321 limit. A longer address is not a strict address; it is a payload. */
+const MAX_EMAIL_LENGTH = 254;
+
+const EmailSchema = z.string().email().max(MAX_EMAIL_LENGTH);
+
+/**
+ * Sign-up and sign-in by password. Both answer with `AuthResponseSchema` — the same token
+ * and the same user the Google exchange returns, so nothing downstream can tell which door
+ * a caller came through.
+ *
+ * The password is deliberately never trimmed: a leading space is a character someone chose,
+ * and silently removing it makes a correct password wrong on the next sign-in.
+ */
+export const SignUpRequestSchema = z.object({
+  email: EmailSchema,
+  password: z.string().min(MIN_PASSWORD_LENGTH).max(MAX_PASSWORD_LENGTH),
+  /** Required so the dashboard has something to greet and an initial to draw. */
+  name: z.string().trim().min(1).max(80),
+});
+export type SignUpRequest = z.infer<typeof SignUpRequestSchema>;
+
+/**
+ * Sign-in accepts any non-empty password, rather than re-applying the sign-up minimum.
+ * Rejecting a short one at the boundary would answer "that is too short to be a password
+ * here" — which tells an attacker about the policy, and tells a legitimate user with an
+ * older password that the fault is theirs. Whether it is right is decided by the hash.
+ */
+export const SignInRequestSchema = z.object({
+  email: EmailSchema,
+  password: z.string().min(1).max(MAX_PASSWORD_LENGTH),
+});
+export type SignInRequest = z.infer<typeof SignInRequestSchema>;
+
 export const CategoryDtoSchema = z.object({
   id: IdSchema,
   name: z.string(),
