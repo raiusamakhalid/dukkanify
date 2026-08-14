@@ -190,16 +190,18 @@ The full ERD and every column is in [`docs/architecture.md` §6](docs/architectu
 
 ## API
 
-| Method  | Path                                    | Auth                 | Purpose                                             |
-| ------- | --------------------------------------- | -------------------- | --------------------------------------------------- |
-| `POST`  | `/api/v1/auth/google`                   | public               | Exchange a Google `id_token` for an application JWT |
-| `POST`  | `/api/v1/generate`                      | required, 5/min/user | Generate and persist a store from a prompt          |
-| `POST`  | `/api/v1/store`                         | required             | Persist or replace a store the client holds         |
-| `GET`   | `/api/v1/store`                         | required             | List the caller's stores                            |
-| `GET`   | `/api/v1/store/:id`                     | required + ownership | Full store with pages, sections, products           |
-| `PATCH` | `/api/v1/store/:id/sections/:sectionId` | required + ownership | The inline editor's write                           |
-| `GET`   | `/api/v1/storefront/:slug`              | public               | Published storefront render data                    |
-| `GET`   | `/api/v1/health`                        | public               | Liveness + database connectivity                    |
+| Method   | Path                                    | Auth                 | Purpose                                             |
+| -------- | --------------------------------------- | -------------------- | --------------------------------------------------- |
+| `POST`   | `/api/v1/auth/google`                   | public               | Exchange a Google `id_token` for an application JWT |
+| `POST`   | `/api/v1/generate`                      | required, 5/min/user | Generate and persist a store from a prompt          |
+| `POST`   | `/api/v1/store`                         | required             | Persist or replace a store the client holds         |
+| `GET`    | `/api/v1/store`                         | required             | List the caller's stores                            |
+| `GET`    | `/api/v1/store/:id`                     | required + ownership | Full store with pages, sections, products           |
+| `PATCH`  | `/api/v1/store/:id/sections/:sectionId` | required + ownership | The inline editor's write                           |
+| `PATCH`  | `/api/v1/store/:id/status`              | required + ownership | Publish or return a store to draft                  |
+| `DELETE` | `/api/v1/store/:id`                     | required + ownership | Delete a store the caller owns                      |
+| `GET`    | `/api/v1/storefront/:slug`              | public               | Published storefront render data                    |
+| `GET`    | `/api/v1/health`                        | public               | Liveness + database connectivity                    |
 
 Every response is wrapped as `{ data, meta }`; every error as
 `{ error: { code, message, requestId }, meta }` — one mapping, in one filter, with no stack

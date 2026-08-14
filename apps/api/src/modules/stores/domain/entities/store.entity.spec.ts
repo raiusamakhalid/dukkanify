@@ -246,4 +246,30 @@ describe('Store behaviour', () => {
   it('does not find a section belonging to another store', () => {
     expect(Store.create(storeWith()).findSection('sec-elsewhere')).toBe(null);
   });
+
+  it('publishes a store that has a catalogue', () => {
+    const store = Store.create(storeWith()).withStatus('PUBLISHED');
+
+    expect(store.status).toBe('PUBLISHED');
+  });
+
+  it('returns the same instance when the status does not change', () => {
+    const store = Store.create(storeWith());
+
+    expect(store.withStatus('DRAFT')).toBe(store);
+  });
+
+  it('returns a published store to draft', () => {
+    const store = Store.create(storeWith())
+      .withStatus('PUBLISHED')
+      .withStatus('DRAFT');
+
+    expect(store.status).toBe('DRAFT');
+  });
+
+  it('refuses to publish a store with no products', () => {
+    expect(() =>
+      Store.create(storeWith({ products: [] })).withStatus('PUBLISHED'),
+    ).toThrow(/at least one product/);
+  });
 });

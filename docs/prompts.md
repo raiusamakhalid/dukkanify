@@ -1097,3 +1097,23 @@ starter SVGs, and missed this one. Deleted.
 only repeat what the root readme already says about running the app — two sets of run
 instructions that can disagree is worse than one. The root `README.md` stays the only readme
 in the repository.
+
+---
+
+## Follow-up — publish, unpublish, delete, and a private preview
+
+**Prompt** How to deploy; what the public publish link is; add a Preview button for drafts;
+fix the published action buttons; fix duplicate step numbers on the landing page; commit and
+push.
+
+**What it produced**
+
+- `PATCH /store/:id/status` and `DELETE /store/:id`, with ownership inside the use cases.
+- Public `/preview/:slug` serves only `PUBLISHED` stores; drafts 404 so a URL cannot leak a
+  shop in progress.
+- Signed-in `/builder/:id/preview` renders the same storefront without the editor.
+- Builder actions sit in one row: Preview, View live (when published), Publish/Unpublish,
+  Delete.
+- Landing-page lists use `list-none` so the step badge is not doubled by the browser marker.
+
+**Trade-off** No custom domain. The shareable URL is still `/preview/:slug` on the web app.

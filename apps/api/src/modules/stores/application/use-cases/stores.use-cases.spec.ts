@@ -12,6 +12,8 @@ import { GetStorefrontUseCase } from './get-storefront.use-case';
 import { ListStoresUseCase } from './list-stores.use-case';
 import { SaveStoreUseCase } from './save-store.use-case';
 import { UpdateSectionUseCase } from './update-section.use-case';
+import { UpdateStoreStatusUseCase } from './update-store-status.use-case';
+import { DeleteStoreUseCase } from './delete-store.use-case';
 
 const OWNER = 'user-1';
 const INTRUDER = 'user-2';
@@ -169,14 +171,27 @@ describe('ListStoresUseCase', () => {
 });
 
 describe('GetStorefrontUseCase', () => {
-  it('serves a store by slug with no signed-in user at all', async () => {
+  it('serves a published store by slug with no signed-in user at all', async () => {
     const seeded = await seedStore();
+    await new UpdateStoreStatusUseCase(stores).execute({
+      storeId: seeded.id,
+      requesterId: OWNER,
+      status: 'PUBLISHED',
+    });
 
     const store = await new GetStorefrontUseCase(stores).execute({
       slug: 'dukkan-al-oud',
     });
 
     expect(store.id).toBe(seeded.id);
+  });
+
+  it('hides a draft behind 404 so a public URL cannot leak an unfinished shop', async () => {
+    await seedStore();
+
+    await expect(
+      new GetStorefrontUseCase(stores).execute({ slug: 'dukkan-al-oud' }),
+    ).rejects.toThrow(NotFoundError);
   });
 
   it('answers 404 for a slug nobody has taken', async () => {
@@ -265,5 +280,79 @@ describe('UpdateSectionUseCase', () => {
         },
       }),
     ).rejects.toThrow(ValidationError);
+  });
+});
+
+describe('UpdateStoreStatusUseCase', () => {
+  it('publishes a store the caller owns', async () => {
+    const seeded = await seedStore();
+
+    const store = await new UpdateStoreStatusUseCase(stores).execute({
+      storeId: seeded.id,
+      requesterId: OWNER,
+      status: 'PUBLISHED',
+    });
+
+    expect(store.status).toBe('PUBLISHED');
+  });
+
+  it('returns a published store to draft', async () => {
+    const seeded = await seedStore();
+    await new UpdateStoreStatusUseCase(stores).execute({
+      storeId: seeded.id,
+      requesterId: OWNER,
+      status: 'PUBLISHED',
+    });
+
+    const store = await new UpdateStoreStatusUseCase(stores).execute({
+      storeId: seeded.id,
+      requesterId: OWNER,
+      status: 'DRAFT',
+    });
+
+    expect(store.status).toBe('DRAFT');
+  });
+
+  it('refuses a status change from someone who does not own the store', async () => {
+    const seeded = await seedStore();
+
+    await expect(
+      new UpdateStoreStatusUseCase(stores).execute({
+        storeId: seeded.id,
+        requesterId: INTRUDER,
+        status: 'PUBLISHED',
+      }),
+    ).rejects.toThrow(ForbiddenError);
+  });
+});
+
+describe('DeleteStoreUseCase', () => {
+  it('removes a store the caller owns', async () => {
+    const seeded = await seedStore();
+
+    const deleted = await new DeleteStoreUseCase(stores).execute({
+      storeId: seeded.id,
+      requesterId: OWNER,
+    });
+
+    expect(deleted.id).toBe(seeded.id);
+    await expect(
+      new GetStoreUseCase(stores).execute({
+        storeId: seeded.id,
+        requesterId: OWNER,
+      }),
+    ).rejects.toThrow(NotFoundError);
+  });
+
+  it('refuses to delete a store belonging to someone else', async () => {
+    const seeded = await seedStore();
+
+    await expect(
+      new DeleteStoreUseCase(stores).execute({
+        storeId: seeded.id,
+        requesterId: INTRUDER,
+      }),
+    ).rejects.toThrow(ForbiddenError);
+    expect(stores.rows.has(seeded.id)).toBe(true);
   });
 });

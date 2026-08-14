@@ -238,11 +238,11 @@ function HowItWorks() {
       title="Three steps, about a minute"
       lede="No theme to pick, no blocks to drag, no placeholder text to delete afterwards."
     >
-      <ol className="mt-16 grid gap-10 sm:grid-cols-3 sm:gap-8">
+      <ol className="mt-16 grid list-none gap-10 p-0 sm:grid-cols-3 sm:gap-8">
         {STEPS.map((step, index) => (
-          <li key={step.title}>
+          <li key={step.title} className="list-none">
             <span
-              className="border-accent/50 text-accent-foreground bg-accent/20 font-heading flex size-10 items-center justify-center rounded-full border text-base"
+              className="border-accent/50 text-accent-foreground bg-accent/20 font-heading flex size-10 shrink-0 items-center justify-center rounded-full border text-base"
               aria-hidden="true"
             >
               {index + 1}
@@ -288,7 +288,7 @@ function Examples() {
               </h3>
               <p className="mt-2 text-sm opacity-80">{store.tagline}</p>
 
-              <ul className="mt-5 flex flex-wrap gap-2">
+              <ul className="mt-5 flex list-none flex-wrap gap-2 p-0">
                 {store.categories.map((category) => (
                   <li
                     key={category}

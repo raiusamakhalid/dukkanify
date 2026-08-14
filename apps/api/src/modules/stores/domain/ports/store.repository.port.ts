@@ -52,6 +52,12 @@ export interface StoreRepositoryPort {
    * rewriting an entire store to change one headline is a transaction nobody needs.
    */
   saveSection(storeId: string, section: Section): Promise<void>;
+
+  /**
+   * Removes the store and every child row. Ownership is decided before this is called;
+   * the repository deletes by id so a missed check cannot hide as "not found".
+   */
+  delete(storeId: string): Promise<void>;
 }
 
 export const STORE_REPOSITORY = Symbol('StoreRepositoryPort');

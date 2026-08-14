@@ -7,6 +7,7 @@ import Link from "next/link";
 import { z } from "zod";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { StoreLifecycleActions } from "@/features/stores/store-lifecycle-actions";
 import { apiAsUser, auth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
@@ -102,33 +103,45 @@ function EmptyState() {
 
 function StoreCard({ store }: { store: StoreSummaryDto }) {
   return (
-    <Link
-      href={`/builder/${store.id}`}
-      className="focus-visible:ring-ring border-border/60 bg-card hover:border-input block h-full rounded-xl border p-6 transition-colors focus-visible:ring-2 focus-visible:outline-none"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <h2 className="font-heading text-lg font-semibold tracking-tight">
-          {store.name}
-        </h2>
-        <Badge variant={store.status === "PUBLISHED" ? "default" : "secondary"}>
-          {store.status === "PUBLISHED" ? "Published" : "Draft"}
-        </Badge>
-      </div>
+    <article className="border-border/60 bg-card flex h-full flex-col rounded-xl border p-6">
+      <Link
+        href={`/builder/${store.id}`}
+        className="focus-visible:ring-ring hover:border-input min-w-0 flex-1 rounded-md focus-visible:ring-2 focus-visible:outline-none"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <h2 className="font-heading text-lg font-semibold tracking-tight">
+            {store.name}
+          </h2>
+          <Badge
+            variant={store.status === "PUBLISHED" ? "default" : "secondary"}
+          >
+            {store.status === "PUBLISHED" ? "Published" : "Draft"}
+          </Badge>
+        </div>
 
-      {store.tagline !== null && (
-        <p
-          className="text-muted-foreground mt-2 text-sm"
-          lang={store.locale}
-          dir={store.direction.toLowerCase()}
-        >
-          {store.tagline}
+        {store.tagline !== null && (
+          <p
+            className="text-muted-foreground mt-2 text-sm"
+            lang={store.locale}
+            dir={store.direction.toLowerCase()}
+          >
+            {store.tagline}
+          </p>
+        )}
+
+        <p className="text-muted-foreground mt-6 text-xs">
+          Updated {formatDate(store.updatedAt)} · /{store.slug}
         </p>
-      )}
+      </Link>
 
-      <p className="text-muted-foreground mt-6 text-xs">
-        Updated {formatDate(store.updatedAt)} · /{store.slug}
-      </p>
-    </Link>
+      <div className="mt-5">
+        <StoreLifecycleActions
+          storeId={store.id}
+          status={store.status}
+          storeName={store.name}
+        />
+      </div>
+    </article>
   );
 }
 

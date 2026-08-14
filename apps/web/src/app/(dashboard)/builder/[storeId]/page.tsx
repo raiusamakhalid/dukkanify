@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { EditableStorefront } from "@/features/builder/editable-storefront";
 import { EditorPanel } from "@/features/builder/editor-panel";
+import { StoreLifecycleActions } from "@/features/stores/store-lifecycle-actions";
 import { apiAsUser } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
@@ -55,12 +56,40 @@ export default async function BuilderPage({
           </p>
         </div>
 
-        <Link
-          href={`/preview/${store.slug}`}
-          className={cn(buttonVariants({ variant: "outline" }), "border-input")}
-        >
-          View live storefront
-        </Link>
+        <div className="flex flex-col items-end gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Link
+              href={`/builder/${store.id}/preview`}
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "border-input",
+              )}
+            >
+              Preview
+            </Link>
+            {store.status === "PUBLISHED" && (
+              <Link
+                href={`/preview/${store.slug}`}
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "sm" }),
+                  "border-input",
+                )}
+              >
+                View live
+              </Link>
+            )}
+            <StoreLifecycleActions
+              storeId={store.id}
+              status={store.status}
+              storeName={store.name}
+            />
+          </div>
+          {store.status !== "PUBLISHED" && (
+            <p className="text-muted-foreground max-w-xs text-end text-xs">
+              Publish to make /{store.slug} visible to anyone with the link.
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Canvas and editor side by side on a wide screen, stacked on a narrow one — with the

@@ -19,9 +19,8 @@ export interface GetStorefrontInput {
  * anything against. One `execute` with a union input would be two use cases wearing one hat,
  * and the half that skips the ownership check is the half worth being able to read alone.
  *
- * Draft stores are served. Nothing publishes a store yet (§9 has no publish endpoint), so
- * requiring `PUBLISHED` would make every generated storefront a 404 — an access rule with no
- * way to satisfy it is worse than none.
+ * Only published stores are served. A draft still exists for its owner in the builder; the
+ * public URL must not leak that a shop is being prepared.
  */
 @Injectable()
 export class GetStorefrontUseCase {
@@ -32,7 +31,7 @@ export class GetStorefrontUseCase {
   async execute(input: GetStorefrontInput): Promise<Store> {
     // A malformed slug is a bad request, not a miss: `Slug` refuses it before a query runs.
     const store = await this.stores.findBySlug(Slug.create(input.slug));
-    if (store === null) {
+    if (store === null || store.status !== 'PUBLISHED') {
       throw new NotFoundError('Storefront', input.slug);
     }
     return store;

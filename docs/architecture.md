@@ -482,16 +482,18 @@ it cannot be bypassed.
 
 ## 9. API surface
 
-| Method  | Path                                    | Auth                 | Purpose                                           |
-| ------- | --------------------------------------- | -------------------- | ------------------------------------------------- |
-| `POST`  | `/api/v1/auth/google`                   | public               | Exchange Google `id_token` for an application JWT |
-| `POST`  | `/api/v1/generate`                      | required, 5/min/user | Generate and persist a store from a prompt        |
-| `POST`  | `/api/v1/store`                         | required             | Persist or update a store the client holds        |
-| `GET`   | `/api/v1/store`                         | required             | List the current user's stores                    |
-| `GET`   | `/api/v1/store/:id`                     | required + ownership | Full store with pages, sections, products         |
-| `PATCH` | `/api/v1/store/:id/sections/:sectionId` | required + ownership | Inline editor update                              |
-| `GET`   | `/api/v1/storefront/:slug`              | public               | Published storefront render data                  |
-| `GET`   | `/api/v1/health`                        | public               | Liveness + database connectivity                  |
+| Method   | Path                                    | Auth                 | Purpose                                           |
+| -------- | --------------------------------------- | -------------------- | ------------------------------------------------- |
+| `POST`   | `/api/v1/auth/google`                   | public               | Exchange Google `id_token` for an application JWT |
+| `POST`   | `/api/v1/generate`                      | required, 5/min/user | Generate and persist a store from a prompt        |
+| `POST`   | `/api/v1/store`                         | required             | Persist or update a store the client holds        |
+| `GET`    | `/api/v1/store`                         | required             | List the current user's stores                    |
+| `GET`    | `/api/v1/store/:id`                     | required + ownership | Full store with pages, sections, products         |
+| `PATCH`  | `/api/v1/store/:id/sections/:sectionId` | required + ownership | Inline editor update                              |
+| `PATCH`  | `/api/v1/store/:id/status`              | required + ownership | Publish (`PUBLISHED`) or unpublish (`DRAFT`)      |
+| `DELETE` | `/api/v1/store/:id`                     | required + ownership | Delete the store and its catalogue                |
+| `GET`    | `/api/v1/storefront/:slug`              | public               | Published storefront render data                  |
+| `GET`    | `/api/v1/health`                        | public               | Liveness + database connectivity                  |
 
 URI versioning at `/api/v1`. Every response wrapped by `TransformInterceptor` as
 `{ data, meta }`. Swagger at `/api/docs` outside production.

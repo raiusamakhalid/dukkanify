@@ -163,6 +163,20 @@ export class PrismaStoreRepository implements StoreRepositoryPort {
       throw new NotFoundError('Section', section.id);
     }
   }
+
+  async delete(storeId: string): Promise<void> {
+    try {
+      await this.prisma.store.delete({ where: { id: storeId } });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
+        throw new NotFoundError('Store', storeId);
+      }
+      throw error;
+    }
+  }
 }
 
 /** Prisma's code for a unique-constraint failure, with the offending columns in `meta`. */

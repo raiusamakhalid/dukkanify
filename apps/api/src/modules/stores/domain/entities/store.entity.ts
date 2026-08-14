@@ -150,6 +150,43 @@ export class Store {
     return this.ownerId === userId;
   }
 
+  /**
+   * The one way a store changes lifecycle. Publish and unpublish are the same write with a
+   * different target, so the conditions that gate each direction live here rather than in
+   * two use cases that would drift.
+   *
+   * Going live requires a catalogue: a published shop with no products is a shop a customer
+   * cannot buy from. Returning to draft is always allowed — that is how a live shop is
+   * taken down without deleting it.
+   */
+  withStatus(status: StoreStatus): Store {
+    if (status === this.status) {
+      return this;
+    }
+
+    ensure(
+      status !== 'PUBLISHED' || this.products.length > 0,
+      'A store needs at least one product before it can be published.',
+    );
+
+    return Store.create({
+      id: this.id,
+      ownerId: this.ownerId,
+      name: this.name,
+      slug: this.slug,
+      tagline: this.tagline,
+      prompt: this.prompt,
+      promptVersion: this.promptVersion,
+      status,
+      locale: this.locale,
+      theme: this.theme,
+      categories: this.categories,
+      products: this.products,
+      pages: this.pages,
+      createdAt: this.createdAt,
+    });
+  }
+
   /** The section with this id anywhere in the store, or null if it belongs to another. */
   findSection(sectionId: string): SectionLocation | null {
     for (const page of this.pages) {

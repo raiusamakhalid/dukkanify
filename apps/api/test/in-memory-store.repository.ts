@@ -53,4 +53,9 @@ export class InMemoryStores implements StoreRepositoryPort {
     this.savedSections.push({ storeId, section });
     return Promise.resolve();
   }
+
+  delete(storeId: string): Promise<void> {
+    this.rows.delete(storeId);
+    return Promise.resolve();
+  }
 }

@@ -135,3 +135,15 @@ export const UpdateSectionRequestSchema = z.object({
   content: SectionContentSchema,
 });
 export type UpdateSectionRequest = z.infer<typeof UpdateSectionRequestSchema>;
+
+/**
+ * `PATCH /store/:id/status` — one lifecycle write for both publish and unpublish.
+ * The API is the status, not a pair of verbs, so a later condition (who may go back to
+ * draft, what a store must contain to go live) lives in one place.
+ */
+export const UpdateStoreStatusRequestSchema = z.object({
+  status: StoreStatusSchema,
+});
+export type UpdateStoreStatusRequest = z.infer<
+  typeof UpdateStoreStatusRequestSchema
+>;

@@ -5,7 +5,9 @@ import { GetStoreUseCase } from './application/use-cases/get-store.use-case';
 import { GetStorefrontUseCase } from './application/use-cases/get-storefront.use-case';
 import { ListStoresUseCase } from './application/use-cases/list-stores.use-case';
 import { SaveStoreUseCase } from './application/use-cases/save-store.use-case';
+import { DeleteStoreUseCase } from './application/use-cases/delete-store.use-case';
 import { UpdateSectionUseCase } from './application/use-cases/update-section.use-case';
+import { UpdateStoreStatusUseCase } from './application/use-cases/update-store-status.use-case';
 import { PrismaStoreRepository } from './infrastructure/prisma-store.repository';
 import { StoresController } from './presentation/stores.controller';
 
@@ -24,6 +26,8 @@ import { StoresController } from './presentation/stores.controller';
     GetStorefrontUseCase,
     SaveStoreUseCase,
     UpdateSectionUseCase,
+    UpdateStoreStatusUseCase,
+    DeleteStoreUseCase,
   ],
   // Generation reaches persistence through the same validated write path as `POST /store`,
   // so there is one place that decides how a blueprint becomes rows.

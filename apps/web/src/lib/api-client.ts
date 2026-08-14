@@ -141,7 +141,7 @@ export interface ApiRequestOptions<T> {
   /** Required, not optional: an API response is external input, and CLAUDE.md admits no
       unvalidated external input. It is also what makes the return type honest. */
   schema: ResponseSchema<T>;
-  method?: "GET" | "POST" | "PATCH";
+  method?: "GET" | "POST" | "PATCH" | "DELETE";
   body?: unknown;
   /** The application JWT from the session. Omitted for public endpoints. */
   token?: string | undefined;

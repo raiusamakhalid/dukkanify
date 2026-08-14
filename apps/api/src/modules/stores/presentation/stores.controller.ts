@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   type SaveStoreRequest,
@@ -8,6 +16,8 @@ import {
   type StoreSummaryDto,
   type UpdateSectionRequest,
   UpdateSectionRequestSchema,
+  type UpdateStoreStatusRequest,
+  UpdateStoreStatusRequestSchema,
 } from '@dukkanify/contracts';
 import {
   type AuthenticatedUser,
@@ -20,6 +30,7 @@ import {
   toStoreDto,
   toStoreSummaryDto,
 } from '../application/mappers/store.mapper';
+import { DeleteStoreUseCase } from '../application/use-cases/delete-store.use-case';
 import { GetStoreUseCase } from '../application/use-cases/get-store.use-case';
 import { GetStorefrontUseCase } from '../application/use-cases/get-storefront.use-case';
 import { ListStoresUseCase } from '../application/use-cases/list-stores.use-case';
@@ -28,9 +39,11 @@ import {
   SaveStoreUseCase,
 } from '../application/use-cases/save-store.use-case';
 import { UpdateSectionUseCase } from '../application/use-cases/update-section.use-case';
+import { UpdateStoreStatusUseCase } from '../application/use-cases/update-store-status.use-case';
 
 const saveStoreBody = new ZodValidationPipe(SaveStoreRequestSchema);
 const updateSectionBody = new ZodValidationPipe(UpdateSectionRequestSchema);
+const updateStatusBody = new ZodValidationPipe(UpdateStoreStatusRequestSchema);
 
 /**
  * Every handler: validate, call one use case, map the result. No branch, no rule, no query.
@@ -48,6 +61,8 @@ export class StoresController {
     private readonly getStorefront: GetStorefrontUseCase,
     private readonly saveStore: SaveStoreUseCase,
     private readonly updateSection: UpdateSectionUseCase,
+    private readonly updateStatus: UpdateStoreStatusUseCase,
+    private readonly deleteStore: DeleteStoreUseCase,
   ) {}
 
   @ApiBearerAuth()
@@ -113,6 +128,38 @@ export class StoresController {
       content: body.content,
     });
     return toSectionDto(located.section, located.position);
+  }
+
+  @ApiBearerAuth()
+  @Patch('store/:storeId/status')
+  @ApiOperation({
+    summary: 'Publish a store or return it to draft',
+  })
+  async patchStatus(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('storeId') storeId: string,
+    @Body(updateStatusBody) body: UpdateStoreStatusRequest,
+  ): Promise<StoreDto> {
+    const store = await this.updateStatus.execute({
+      storeId,
+      requesterId: user.id,
+      status: body.status,
+    });
+    return toStoreDto(store);
+  }
+
+  @ApiBearerAuth()
+  @Delete('store/:storeId')
+  @ApiOperation({ summary: 'Delete a store the caller owns' })
+  async remove(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('storeId') storeId: string,
+  ): Promise<StoreSummaryDto> {
+    const store = await this.deleteStore.execute({
+      storeId,
+      requesterId: user.id,
+    });
+    return toStoreSummaryDto(store);
   }
 
   @Public()
