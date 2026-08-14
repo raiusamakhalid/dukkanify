@@ -18,7 +18,7 @@ rendered instantly, and editable in place.
 | **Prompt → shop**     | `"Create a luxury perfume store for UAE customers"` becomes a themed storefront with a catalogue, in about a second on the mock provider. |
 | **Persisted**         | Every store, page, section, category and product is a row in PostgreSQL, written in one transaction.                                      |
 | **Instant preview**   | The generated shop appears without a page refresh — a Server Action redirects into the builder client-side.                               |
-| **Inline editing**    | Click a section, change its words, save. Colour pickers repaint every section as you drag.                                                |
+| **Inline editing**    | Click a section, change its words, save. Colour pickers and theme presets repaint every section as you drag.                              |
 | **Bilingual**         | Write the prompt in Arabic and the shop is stored `ar` / `RTL` and rendered right-to-left.                                                |
 | **Public storefront** | `/preview/:slug` is open to anyone, carries no session, and 404s honestly for a slug nobody owns.                                         |
 
@@ -26,7 +26,7 @@ rendered instantly, and editable in place.
 
 ## Quick start (one command)
 
-**Prerequisites:** Node.js **20.11+**, Docker, and a Google OAuth client (for sign-in).
+**Prerequisites:** Node.js **20.11+**, Docker, and (for Google sign-in) a Google OAuth client.
 
 ```bash
 git clone <this-repo> && cd dukkanify
@@ -58,7 +58,7 @@ That one command:
 3. Applies Prisma migrations
 4. Runs the API on **:4000** and the web app on **:3000** together
 
-Open <http://localhost:3000> → **Continue with Google** → **Create Store**.
+Open <http://localhost:3000> → **Start Building** (Google, or email and password) → **Create Store with AI**.
 
 | Alias              | Same as                             |
 | ------------------ | ----------------------------------- |
@@ -69,9 +69,12 @@ Open <http://localhost:3000> → **Continue with Google** → **Create Store**.
 `AI_PROVIDER=gemini` + `GEMINI_API_KEY`, or `AI_PROVIDER=claude` + `ANTHROPIC_API_KEY`, then
 restart `npm run dev`.
 
-### Google sign-in
+### Sign-in
 
-Create an OAuth client (Web application) in the [Google Cloud Console](https://console.cloud.google.com/)
+`/signup` and `/login` accept an email and password, or **Continue with Google**. Both paths
+end in the same application JWT.
+
+For Google, create an OAuth client (Web application) in the [Google Cloud Console](https://console.cloud.google.com/)
 and add this authorised redirect URI:
 
 `http://localhost:3000/api/auth/callback/google`
@@ -193,6 +196,8 @@ The full ERD and every column is in [`docs/architecture.md` §6](docs/architectu
 | Method   | Path                                    | Auth                 | Purpose                                             |
 | -------- | --------------------------------------- | -------------------- | --------------------------------------------------- |
 | `POST`   | `/api/v1/auth/google`                   | public               | Exchange a Google `id_token` for an application JWT |
+| `POST`   | `/api/v1/auth/register`                 | public, 5/min/IP     | Create an account from an email and a password      |
+| `POST`   | `/api/v1/auth/login`                    | public, 5/min/IP     | Exchange an email and password for the same JWT     |
 | `POST`   | `/api/v1/generate`                      | required, 5/min/user | Generate and persist a store from a prompt          |
 | `POST`   | `/api/v1/store`                         | required             | Persist or replace a store the client holds         |
 | `GET`    | `/api/v1/store`                         | required             | List the caller's stores                            |
@@ -213,16 +218,36 @@ else's store id returns `403`, not a `404` that happens to look like privacy.
 
 ---
 
+## Design
+
+Two palettes, kept apart on purpose.
+
+The **product** — landing, auth, dashboard, builder chrome — is desert sand and ivory on
+the paper, deep emerald for weight, gold leaf for the one thing that should be looked at.
+Headings are Source Serif 4; UI and Arabic coverage are IBM Plex Sans Arabic. One mashrabiya
+lattice is used as atmosphere (hero, dashboard rail, closing CTA), not as wallpaper. Motion
+is a stagger and a reveal, and it respects `prefers-reduced-motion`.
+
+A **generated shop** never borrows that palette. Colour, radius and typeface arrive as
+`--brand-*` custom properties on the storefront wrapper, so the same section components can
+paint a sand perfume house and a charcoal bukhoor shop — and so the editor's colour pickers
+repaint every section by writing one property.
+
+---
+
 ## The screens
 
-|                                                                    |                                                                                                                                                                                                                                |
-| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| ![Sign in and dashboard](docs/screenshots/dashboard.png)           | **Dashboard** — "Welcome Abdullah", one obvious action, and the stores this account has made. The list is fetched server-side with the caller's bearer token; there is no `useEffect` fetching anywhere in the app.            |
-| ![The builder with the editor panel](docs/screenshots/builder.png) | **Builder** — the same section components the public storefront uses, with selection layered on top. Text edits are optimistic and roll back if the API refuses them; colour pickers write `--brand-*` straight to the canvas. |
-| ![A generated storefront](docs/screenshots/storefront.png)         | **Storefront** — everything here is generated: palette, type scale, headline, categories, eight products with prices, About and Contact.                                                                                       |
+|                                                                    |                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ![Sign in and dashboard](docs/screenshots/dashboard.png)           | **Dashboard** — a deep emerald rail, a greeting on Asia/Dubai time, and the stores on this account. Published and draft counts come from that same list. Empty, it teaches the prompt; with stores, each card is a cover and a way back into the builder. Fetched server-side with the caller's bearer token; there is no `useEffect` fetching anywhere in the app.                                       |
+| ![The builder with the editor panel](docs/screenshots/builder.png) | **Builder** — three panes, on its own route so it is not a canvas inside a sidebar: section rail, canvas with a desktop/mobile toggle, editor. The storefront sizes against `@container`, so a half-width preview and the mobile toggle show the real layout. Text edits are optimistic and roll back if the API refuses them; colour pickers and theme presets write `--brand-*` straight to the canvas. |
+| ![A generated storefront](docs/screenshots/storefront.png)         | **Storefront** — everything here is generated: palette, type scale, headline, categories, eight products with prices, About and Contact. Hero and catalogue photographs are matched from a verified library against the shop's own words; a shop that matches nothing keeps the palette gradient.                                                                                                         |
 
-Mobile-first throughout; the landing page scores **93 performance / 100 accessibility** on
-Lighthouse at a 375 px viewport, with no horizontal scroll at 375, 768 or 1440.
+The landing page is one argument in order: the promise (two columns — copy and a live shop
+preview, with a typewriter cycling real prompts), how a sentence becomes a store, three
+steps, a live theme switcher, shops the generator has already built, and why it is built
+for the Gulf. On a phone the hero stacks to a single column and the floating annotations
+drop away; the builder becomes a canvas and a tab bar below `lg`.
 
 ![The landing page on mobile](docs/screenshots/landing-mobile.png)
 
@@ -275,7 +300,14 @@ dukkanify/
 │   ├── api/          NestJS 11 — clean architecture per module
 │   │   └── src/modules/{auth,stores,generation}/{domain,application,infrastructure,presentation}
 │   └── web/          Next.js 15 App Router — Server Components by default
-│       └── src/{app,features,components/ui,lib}
+│       └── src/
+│           ├── app/
+│           │   ├── (marketing)/     landing
+│           │   ├── (auth)/          login + signup
+│           │   ├── (dashboard)/     emerald shell, store list, create
+│           │   ├── (builder)/       three-pane workspace
+│           │   └── preview/[slug]/  public storefront
+│           └── features/{marketing,auth,shell,generation,builder,storefront,stores}
 ├── packages/
 │   ├── contracts/    Zod schemas → inferred types → the model's JSON Schema
 │   └── tsconfig/     the strict base both apps extend
@@ -290,7 +322,8 @@ noticing in three places.
 
 ## Known limitations
 
-Verbatim from [`docs/architecture.md` §14](docs/architecture.md), accurate at submission:
+Mostly from [`docs/architecture.md` §14](docs/architecture.md). Photography and theme notes
+below match the current UI rather than the original placeholder gradients:
 
 - **Bonus features not implemented:** SSE streaming, undo/redo, version history writer.
   Next.js Server Actions _are_ implemented — generation and every section save go through one.
@@ -305,11 +338,14 @@ Verbatim from [`docs/architecture.md` §14](docs/architecture.md), accurate at s
   support — which did confirm the quota handling, since per-minute and per-day limits are told
   apart and answered as `503` with different messages. `AI_PROVIDER=mock` is what every
   verification here runs on.
-- **Theme edits are preview-only.** Colour pickers repaint every section instantly but nothing
-  persists them: there is no endpoint that updates a theme, and `POST /store` would replace
-  the aggregate and reassign every id. The panel says so on screen. Text edits _do_ persist.
-- **Product imagery is a drawn placeholder, not generated.** `imageUrl` is null on every
-  product ever saved; each tile is a gradient from the store's own palette, angled by the SKU.
+- **Theme edits are preview-only.** Colour pickers and theme presets repaint every section
+  instantly but nothing persists them: there is no endpoint that updates a theme, and
+  `POST /store` would replace the aggregate and reassign every id. The panel says so on
+  screen. Text edits _do_ persist.
+- **Product photography is not generated.** `imageUrl` is null on every product the model
+  saves. Tiles are matched against a small verified Unsplash library from the product's own
+  words (and the shop's prompt); a SKU that matches nothing keeps the original palette
+  gradient, angled by the SKU. The hero uses the same library, or no photograph.
 - **No HTTP e2e or repository integration tests.** Unit coverage only. The end-to-end paths
   were verified by driving a real browser against the running stack — reproducible by hand,
   not by CI.
