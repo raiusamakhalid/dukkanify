@@ -17,6 +17,8 @@ import { auth } from "@/lib/auth";
 
 const LOGIN = "/login";
 const DASHBOARD = "/dashboard";
+/** Both doors, so neither shows a form to somebody who is already through it. */
+const PUBLIC_AUTH_PATHS: readonly string[] = [LOGIN, "/signup"];
 
 export default auth((request) => {
   const session = request.auth;
@@ -26,7 +28,7 @@ export default auth((request) => {
   const signedIn = session !== null && session.error === undefined;
   const { pathname, origin } = request.nextUrl;
 
-  if (pathname === LOGIN) {
+  if (PUBLIC_AUTH_PATHS.includes(pathname)) {
     // Nothing to sign into: send them where they were going.
     return signedIn
       ? NextResponse.redirect(new URL(DASHBOARD, origin))
@@ -50,5 +52,5 @@ export const config = {
    * refuses an identifier it cannot evaluate. `:path*` matches zero or more segments, so
    * `/dashboard` itself is covered as well as everything under it.
    */
-  matcher: ["/login", "/dashboard/:path*", "/builder/:path*"],
+  matcher: ["/login", "/signup", "/dashboard/:path*", "/builder/:path*"],
 };

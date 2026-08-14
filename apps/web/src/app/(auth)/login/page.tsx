@@ -1,17 +1,22 @@
+import { MAX_PASSWORD_LENGTH } from "@dukkanify/contracts";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Mashrabiya } from "@/components/mashrabiya";
 import { Button } from "@/components/ui/button";
-import { signIn } from "@/lib/auth";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { signInWithPassword } from "@/features/auth/actions";
+import { GoogleSignIn } from "@/features/auth/google-sign-in";
 
 export const metadata: Metadata = { title: "Sign in" };
 
 /**
- * Sign-in, with Google as the only identity provider (PDF §4.2).
+ * Sign-in, by password or with Google (PDF §4.2).
  *
- * A Server Component: the button submits a form to a Server Action, so signing in needs no
- * client JavaScript at all and works before hydration — which matters on the one page a
- * visitor cannot get past if it is broken.
+ * A Server Component: both forms submit to Server Actions, so signing in needs no client
+ * JavaScript at all and works before hydration — which matters on the one page a visitor
+ * cannot get past if it is broken. It is also why a failure arrives as `?error=` rather than
+ * as component state, and why a rejected form comes back empty.
  */
 
 /**
@@ -23,6 +28,11 @@ export const metadata: Metadata = { title: "Sign in" };
  * error message is not a place to echo user input.
  */
 const FAILURE_MESSAGE: Readonly<Record<string, string>> = {
+  /** One sentence for an unknown address, a wrong password, and an account whose password a
+      Google sign-in removed. The API refuses to tell them apart and so does this (§8). */
+  credentials: "Email or password is incorrect.",
+  "session-not-started":
+    "Your account was created, but we could not start your session. Sign in to continue.",
   "token-exchange-failed":
     "You signed in with Google, but we could not reach Dukkanify to finish setting up your session. Try again in a moment.",
   OAuthAccountNotLinked:
@@ -74,56 +84,68 @@ export default async function LoginPage({
         </p>
 
         {failure !== null && (
-          <p
+          <div
             role="alert"
             className="border-destructive/40 bg-destructive/10 text-destructive mt-8 rounded-lg border px-4 py-3 text-sm"
           >
-            {failure}
-          </p>
+            <p>{failure}</p>
+            {/* Standing copy, shown for any refusal and keyed on nothing about the address
+                typed: it explains the one case a generic message cannot — an account whose
+                password was removed when Google was linked to it (§8) — without confirming
+                that any particular email is registered here. */}
+            {error === "credentials" && (
+              <p className="mt-2 opacity-90">
+                If you have ever used “Continue with Google” for this address,
+                sign in that way. Linking Google removes any password on the
+                account.
+              </p>
+            )}
+          </div>
         )}
 
-        <form
-          action={async () => {
-            "use server";
-            await signIn("google", { redirectTo: "/dashboard" });
-          }}
-          className="mt-8"
-        >
+        <form action={signInWithPassword} className="mt-8 space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              maxLength={254}
+              className="h-11"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              required
+              maxLength={MAX_PASSWORD_LENGTH}
+              className="h-11"
+            />
+          </div>
+
           <Button type="submit" size="lg" className="w-full">
-            <GoogleMark />
-            Continue with Google
+            Sign in
           </Button>
         </form>
 
+        <GoogleSignIn />
+
         <p className="text-muted-foreground mt-6 text-sm">
-          We use your Google account only to identify you. Dukkanify never posts
-          anything on your behalf.
+          New here?{" "}
+          <Link href="/signup" className="text-foreground underline">
+            Create an account
+          </Link>
+          . We use your Google account only to identify you — Dukkanify never
+          posts anything on your behalf.
         </p>
       </div>
     </main>
-  );
-}
-
-/** Google's mark, drawn rather than fetched: one request fewer, and it cannot 404. */
-function GoogleMark() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <path
-        fill="#4285F4"
-        d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.63h6.46a5.52 5.52 0 0 1-2.4 3.62v3h3.88c2.27-2.09 3.58-5.17 3.58-8.8Z"
-      />
-      <path
-        fill="#34A853"
-        d="M12 24c3.24 0 5.96-1.08 7.94-2.93l-3.88-3c-1.08.72-2.45 1.15-4.06 1.15-3.13 0-5.78-2.11-6.73-4.95H1.27v3.09A12 12 0 0 0 12 24Z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M5.27 14.27a7.2 7.2 0 0 1 0-4.54V6.64H1.27a12 12 0 0 0 0 10.72l4-3.09Z"
-      />
-      <path
-        fill="#EA4335"
-        d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.44-3.44C17.95 1.19 15.23 0 12 0A12 12 0 0 0 1.27 6.64l4 3.09C6.22 6.86 8.87 4.75 12 4.75Z"
-      />
-    </svg>
   );
 }
